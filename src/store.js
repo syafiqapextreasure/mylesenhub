@@ -202,7 +202,7 @@ function normalise(kind, raw) {
     delete payload.poster;
   return payload;
 }
-export async function submit(sql, u, body) {
+export async function submit(sql, u, body, registrationId) {
   const { kind, status = "semakan" } = body;
   check(
     kind === u.role ||
@@ -212,6 +212,8 @@ export async function submit(sql, u, body) {
     "Peranan akaun tidak sepadan.",
   );
   check(["draft", "semakan"].includes(status), 400, "Status tidak sah.");
+  if (registrationId !== undefined)
+    check(uuid(registrationId), 400, "Rujukan pendaftaran tidak sah.");
   const p = normalise(kind, body.payload || {});
   if (status === "semakan") {
     if (["instructor", "institut"].includes(kind))
@@ -275,6 +277,12 @@ export async function submit(sql, u, body) {
       result =
         await sql`INSERT INTO mylesenhub.submissions(user_id,kind,payload,status) SELECT user_id,kind,${JSON.stringify(p)}::jsonb||jsonb_build_object('listingId',coalesce(payload->>'listingId',id::text)),${status} FROM mylesenhub.submissions WHERE id=${body.id} AND user_id=${u.id} AND kind='program' AND status='diterbitkan' RETURNING id`;
     }
+  } else if (registrationId !== undefined) {
+    result =
+      await sql`INSERT INTO mylesenhub.submissions(id,user_id,kind,payload,status) VALUES(${registrationId},${u.id},${kind},${JSON.stringify(p)}::jsonb,${status}) ON CONFLICT(id) DO NOTHING RETURNING id`;
+    if (!result.length)
+      result =
+        await sql`SELECT id FROM mylesenhub.submissions WHERE id=${registrationId} AND user_id=${u.id} AND kind=${kind}`;
   } else
     result =
       await sql`INSERT INTO mylesenhub.submissions(user_id,kind,payload,status) VALUES(${u.id},${kind},${JSON.stringify(p)}::jsonb,${status}) RETURNING id`;
@@ -314,7 +322,7 @@ export async function review(sql, user, b) {
   if (b.action !== "publish") {
     const r = await decision;
     check(r.length, 409, "Status telah berubah.");
-    return { message: "Status semakan dikemas kini." };
+    return { status: next, message: b.action === "verify" ? "Permohonan disahkan dan sedia untuk diterbitkan." : "Permohonan dikembalikan untuk pembetulan." };
   }
   const p = sub.payload,
     profileKind = ["instructor", "institut"].includes(sub.kind);
@@ -358,7 +366,7 @@ export async function review(sql, user, b) {
     const r = await decision;
     check(r.length, 409, "Status telah berubah.");
   }
-  return { message: "Permohonan disahkan." };
+  return { status: next, message: "Permohonan diterbitkan." };
 }
 export async function setAccess(sql, u, b) {
   check(

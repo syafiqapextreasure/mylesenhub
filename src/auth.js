@@ -1,4 +1,4 @@
-import { check, clean, json } from "./security.js";
+import { check, clean, json, uuid } from "./security.js";
 const localCookie = "mlh_session";
 
 function sessionCookie(req) {
@@ -96,13 +96,23 @@ export async function authAction(req, env, sql, path, b) {
       400,
       "Semak kata laluan.",
     );
+  const callback = new URL("/login", origin);
+  if (
+    path === "/api/signup" &&
+    uuid(b.registrationId) &&
+    b.return ===
+      (b.accountType === "institut" ? "/daftar-institut" : "/sertai-kami")
+  ) {
+    callback.searchParams.set("return", b.return);
+    callback.searchParams.set("application", b.registrationId);
+  }
   const payload =
     path === "/api/signup"
       ? {
           email,
           password: b.password,
           name: clean(b.name) || email.split("@")[0],
-          callbackURL: origin + "/login",
+          callbackURL: callback.href,
         }
       : path === "/api/login"
         ? { email, password: b.password, rememberMe: b.rememberMe !== false }
@@ -130,6 +140,7 @@ export async function authAction(req, env, sql, path, b) {
   }
   const response = json({
     ok: true,
+    userId: stored ? data.user?.id : undefined,
     redirect:
       path === "/api/logout" || path === "/api/reset"
         ? "/login"

@@ -405,9 +405,11 @@ function renderDashboard(path, url, data = {}) {
       let s = (data.submissions || []).find(
         (x) => String(x.id) === url.searchParams.get("id"),
       );
+      const reviewStep =
+        { semakan: 1, pengesahan: 2, diterbitkan: 3, pembetulan: 1 }[s?.status] ?? -1;
       content += s
-        ? `<div class="d-steps">${["Dihantar", "Semakan", "Pengesahan", "Diterbitkan"].map((label, i) => `<div><b>${i + 1}</b><strong>${label}</strong></div>`).join("")}</div><div class="d-columns">${card(
-            `<h2>Perbandingan maklumat</h2>${(data.profile?.payload || data.profile || {}).photo ? `<div class="d-review-photo"><img src="${esc((data.profile?.payload || data.profile).photo)}" alt="Foto profil awam"></div>` : ""}<p>${detail(s)}</p>${pill(s.status)}<div class="d-table-wrap d-comparison"><table><thead><tr><th>Maklumat</th><th>Versi awam</th><th>Perubahan dihantar</th></tr></thead><tbody>${Object.entries(
+        ? `<div data-review-view data-status="${esc(s.status)}"><div class="d-steps" aria-label="Kemajuan semakan">${["Dihantar", "Semakan", "Pengesahan", "Diterbitkan"].map((label, i) => `<div data-review-step="${i}" class="${i <= reviewStep ? "completed" : ""}" ${i === reviewStep ? 'aria-current="step"' : ""}><b>${i + 1}</b><strong>${label}</strong></div>`).join("")}</div><div class="d-columns">${card(
+            `<h2>Perbandingan maklumat</h2>${(data.profile?.payload || data.profile || {}).photo ? `<div class="d-review-photo"><img src="${esc((data.profile?.payload || data.profile).photo)}" alt="Foto profil awam"></div>` : ""}<p>${detail(s)}</p><span data-review-status>${pill(s.status)}</span><div class="d-table-wrap d-comparison"><table><thead><tr><th>Maklumat</th><th>Versi awam</th><th>Perubahan dihantar</th></tr></thead><tbody>${Object.entries(
               s.payload || {},
             )
               .map(
@@ -415,7 +417,7 @@ function renderDashboard(path, url, data = {}) {
                   `<tr><td>${esc(key.replaceAll("_", " "))}</td><td>${esc((data.profile?.payload || data.profile || {})[key] ?? "—")}</td><td>${esc(Array.isArray(value) ? value.join(", ") : value)}</td></tr>`,
               )
               .join("")}</tbody></table></div>`,
-          )}${card(`<h2>Senarai semakan</h2><p>Semak maklumat dan sahkan pemilik sebelum menerbitkan.</p><ul class="d-checklist"><li>Maklumat profil dan butiran hubungan</li><li>Perbandingan dengan versi awam</li><li>Pengesahan pemilik dan kandungan</li></ul><h2>Tindakan semakan</h2><form data-review="${esc(s.id)}"><label class="d-field"><b>Nota semakan</b><textarea name="note"></textarea></label><div class="d-actions left">${["semakan", "pengesahan"].includes(s.status) ? '<button class="d-btn outline" name="action" value="return">Minta pembetulan</button>' : ""}${s.status === "semakan" ? '<button class="d-btn red" name="action" value="verify">Sahkan</button>' : ""}${s.status === "pengesahan" ? '<button class="d-btn red" name="action" value="publish">Terbitkan</button>' : ""}</div><p class="d-feedback" aria-live="polite"></p></form>`)}</div>`
+          )}${card(`<h2>Senarai semakan</h2><p>Semak maklumat dan sahkan pemilik sebelum menerbitkan.</p><ul class="d-checklist"><li>Maklumat profil dan butiran hubungan</li><li>Perbandingan dengan versi awam</li><li>Pengesahan pemilik dan kandungan</li></ul><h2>Tindakan semakan</h2><form data-review="${esc(s.id)}"><label class="d-field"><b>Nota semakan</b><textarea name="note"></textarea></label><div class="d-actions left" data-review-actions>${["semakan", "pengesahan"].includes(s.status) ? '<button class="d-btn outline" name="action" value="return">Minta pembetulan</button>' : ""}${s.status === "semakan" ? '<button class="d-btn red" name="action" value="verify">Sahkan</button>' : ""}${s.status === "pengesahan" ? '<button class="d-btn red" name="action" value="publish">Terbitkan</button>' : ""}</div><p class="d-feedback" aria-live="polite" tabindex="-1"></p></form>`)}</div></div>`
         : card("<p>Permohonan tidak ditemui.</p>");
     } else if (slug === "direktori") {
       let rows = [

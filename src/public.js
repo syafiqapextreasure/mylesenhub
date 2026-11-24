@@ -1168,6 +1168,10 @@ const register = (data, isInstitute) => {
     role +
     '" data-guest="' +
     !logged +
+    '" data-account-id="' +
+    esc(data.user?.id || "") +
+    '" data-account-role="' +
+    esc(data.user?.role || "") +
     '" data-return="' +
     here +
     '">' +

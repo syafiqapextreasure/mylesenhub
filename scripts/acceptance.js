@@ -70,6 +70,7 @@ async function publish(id) {
   await post("/api/review", { id, action: "publish" }, admin.cookie);
 }
 const form = {
+  requestId: randomUUID(),
   name: "Cikgu QA " + stamp,
   displayName: "Cikgu QA " + stamp,
   fullName: "Private QA",
@@ -83,15 +84,31 @@ const form = {
   photo: image,
   email: instructor.email,
 };
-const submission = await post(
-  "/api/register/instructor",
-  form,
-  instructor.cookie,
+const registerInstructor = () =>
+  post("/api/register/instructor", form, instructor.cookie);
+const [submission, repeated] = await Promise.all([
+  registerInstructor(),
+  registerInstructor(),
+]);
+assert.equal(submission.id, repeated.id);
+const [counts] =
+  await sql`SELECT count(*)::int AS total FROM mylesenhub.submissions WHERE user_id=${instructor.id} AND kind='instructor'`;
+assert.equal(counts.total, 1);
+console.log(
+  "PASS two concurrent registration attempts returned the same ID and created one application.",
 );
 const lookup = async () =>
   await (await fetch(origin + "/cari-instructor")).text();
 assert(!(await lookup()).includes(form.name));
 await publish(submission.id);
+const replay = await registerInstructor();
+assert.equal(replay.id, submission.id);
+const [persisted] =
+  await sql`SELECT status FROM mylesenhub.submissions WHERE id=${submission.id}`;
+assert.equal(persisted.status, "diterbitkan");
+console.log(
+  "PASS retrying a published registration preserved its review status.",
+);
 assert((await lookup()).includes(form.name));
 assert.equal((await fetch(origin + image)).status, 200);
 console.log(

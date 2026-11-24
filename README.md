@@ -22,7 +22,15 @@ Jalankan `npm run db:migrate`, kemudian `npm run dev`. Migrasi menambah jadual d
 
 Instructor dan institut boleh menyimpan draf, menghantar maklumat serta melihat status semakan. Admin menyemak, mengesahkan dan menerbitkan versi awam. Permohonan perubahan disimpan berasingan daripada versi yang sedang dipaparkan. Gambar muat naik disimpan pada Neon dan hanya boleh dilihat oleh pemilik dan admin sehingga diterbitkan. Imej profil dan galeri terhad kepada JPG, PNG atau WebP sehingga 2 MB setiap satu.
 
+Apabila pemohon baharu memilih **Hantar untuk semakan**, MyLesenHub menyimpan borang dan lampiran pada pelayar semasa pendaftaran akaun. Permohonan dihantar secara automatik selepas sesi log masuk disahkan. Admin boleh memilih **Terbitkan** sebaik sahaja **Sahkan** berjaya.
+
 Laman `/cari-instructor?contoh=1` memaparkan contoh reka bentuk. Direktori biasa, sitemap dan carian awam menggunakan data yang diluluskan. E-mel dan nama penuh borang hanya tersedia mengikut peranan. Pertanyaan laman masuk ke peti mesej admin.
+
+### Panduan video
+
+- [Daftar sebagai instructor](docs/panduan-pendaftaran/01-daftar-instructor.mp4)
+- [Daftar Institut Memandu](docs/panduan-pendaftaran/02-daftar-institut.mp4)
+- [Sahkan dan terbitkan permohonan sebagai admin](docs/panduan-pendaftaran/03-semakan-admin.mp4)
 
 ## Semakan
 

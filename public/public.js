@@ -170,11 +170,16 @@ async function draftStorage(key, mode, value) {
       );
       const store = tx.objectStore("drafts");
       const request =
-        mode === "get"
+        mode === "get" || mode === "deleteVersion"
           ? store.get(key)
           : mode === "delete"
             ? store.delete(key)
             : store.put(value, key);
+      if (mode === "deleteVersion")
+        request.onsuccess = () => {
+          if (request.result && (request.result.version ?? null) === value)
+            store.delete(key);
+        };
       tx.oncomplete = () => resolve(request.result);
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
@@ -230,22 +235,40 @@ for (const picker of document.querySelectorAll(".pub-class-picker")) {
     queueMicrotask(() => refreshClassSummary(picker));
   });
 }
-const draftKey = (form) => form.dataset.draft;
-async function saveDraft(form) {
+const savedVersions = new WeakMap();
+const requestIds = new WeakMap();
+const intentKey = (path) => "mylesenhub:registration:" + path;
+const snapshotKey = (id) => "registration:" + id;
+function readIntent(path) {
+  try {
+    return JSON.parse(sessionStorage.getItem(intentKey(path)));
+  } catch {
+    return null;
+  }
+}
+async function saveDraft(form, key = form.dataset.draft) {
   const files = Object.fromEntries(
     [...form.querySelectorAll("input[type=file]")].map((input) => [
       input.name,
       currentFiles.get(input) || [],
     ]),
   );
-  await draftStorage(draftKey(form), "put", {
+  const version = crypto.randomUUID();
+  await draftStorage(key, "put", {
+    version,
+    sourceVersion: savedVersions.get(form),
     values: formValues(form),
     files,
   });
+  if (key === form.dataset.draft) savedVersions.set(form, version);
 }
-async function restoreDraft(form) {
-  const draft = await draftStorage(draftKey(form), "get");
-  if (!draft) return;
+async function restoreDraft(form, key) {
+  const draft = await draftStorage(key, "get");
+  if (!draft) return false;
+  if (key === form.dataset.draft)
+    savedVersions.set(form, draft.version ?? null);
+  else if (draft.sourceVersion !== undefined)
+    savedVersions.set(form, draft.sourceVersion);
   for (const name of ["state", "district", "institute"]) {
     const input = form.querySelector('[name="' + name + '"]');
     if (input && draft.values[name]) {
@@ -274,12 +297,61 @@ async function restoreDraft(form) {
   )
     form.querySelector(".pub-promotion details").open = true;
   showStatus(form, "Draf pada peranti ini dimuatkan.");
+  return true;
+}
+async function resumeRegistration(form) {
+  const path = form.dataset.return;
+  const intent = readIntent(path);
+  if (
+    intent?.stage === "auth" &&
+    form.dataset.guest === "true" &&
+    (await restoreDraft(form, snapshotKey(intent.id)))
+  )
+    return;
+  if (
+    !intent ||
+    !form.dataset.accountId ||
+    intent.owner !== form.dataset.accountId
+  )
+    return restoreDraft(form, form.dataset.draft);
+  if (!(await restoreDraft(form, snapshotKey(intent.id)))) {
+    sessionStorage.removeItem(intentKey(path));
+    await restoreDraft(form, form.dataset.draft);
+    showStatus(
+      form,
+      "Draf permohonan tidak ditemui. Semak maklumat dan hantar semula.",
+      true,
+    );
+    return;
+  }
+  requestIds.set(form, intent.id);
+  if (intent.stage !== "ready") return;
+  intent.stage = "manual";
+  sessionStorage.setItem(intentKey(path), JSON.stringify(intent));
+  if (form.dataset.accountRole !== form.dataset.draft) {
+    showStatus(
+      form,
+      "Gunakan akaun yang sepadan dengan jenis permohonan ini.",
+      true,
+    );
+    return;
+  }
+  showStatus(form, "Permohonan anda sedang dihantar untuk semakan…");
+  form.querySelector(".pub-status").scrollIntoView({ block: "center" });
+  form.requestSubmit();
 }
 for (const form of document.querySelectorAll("[data-draft]")) {
-  restoreDraft(form).catch(() => {});
+  resumeRegistration(form).catch(() =>
+    showStatus(form, "Draf tidak dapat dimuatkan. Sila cuba lagi.", true),
+  );
   form.querySelector("[data-save]").addEventListener("click", async () => {
     try {
       await saveDraft(form);
+      if (
+        requestIds.has(form) &&
+        readIntent(form.dataset.return)?.id === requestIds.get(form)
+      )
+        await saveDraft(form, snapshotKey(requestIds.get(form)));
       showStatus(form, "Draf disimpan pada peranti ini.");
     } catch {
       showStatus(form, "Draf tidak dapat disimpan pada peranti ini.", true);
@@ -328,6 +400,7 @@ for (const form of document.querySelectorAll("[data-api]")) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = form.querySelector("button:not([type=button])");
+    if (button.disabled) return;
     button.disabled = true;
     const values = formValues(form);
     try {
@@ -338,7 +411,25 @@ for (const form of document.querySelectorAll("[data-api]")) {
         throw new Error("Pilih sekurang-kurangnya satu Kelas SPIM.");
       }
       if (form.dataset.guest === "true") {
-        await saveDraft(form);
+        const id = crypto.randomUUID();
+        const path = form.dataset.return;
+        const previous = readIntent(path);
+        await saveDraft(form, snapshotKey(id));
+        try {
+          sessionStorage.setItem(
+            intentKey(path),
+            JSON.stringify({ id, kind: form.dataset.draft, stage: "auth" }),
+          );
+        } catch {
+          await draftStorage(snapshotKey(id), "delete");
+          throw new Error(
+            "Benarkan storan pelayar untuk meneruskan pendaftaran.",
+          );
+        }
+        if (previous)
+          await draftStorage(snapshotKey(previous.id), "delete").catch(
+            () => {},
+          );
         const params = new URLSearchParams({
           return: form.dataset.return,
           type: form.dataset.draft,
@@ -347,24 +438,78 @@ for (const form of document.querySelectorAll("[data-api]")) {
         return;
       }
       if (form.dataset.draft) {
+        if (!requestIds.has(form)) requestIds.set(form, crypto.randomUUID());
+        values.requestId = requestIds.get(form);
         if (values.experience !== undefined)
           values.experience = Number(values.experience);
         await addUploads(form, values);
       }
-      if (form.dataset.return) values.return = form.dataset.return;
+      const path = form.dataset.return;
+      if (path) values.return = path;
+      let intent = path && readIntent(path);
+      if (form.dataset.access === "signup" && intent?.stage === "auth") {
+        if (values.accountType !== intent.kind)
+          throw new Error(
+            "Pilih jenis akaun yang sepadan dengan borang pendaftaran anda.",
+          );
+        values.registrationId = intent.id;
+      }
       const result = await request(form.dataset.api, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
       showStatus(form, result.message || "Maklumat anda berjaya dihantar.");
-      if (form.dataset.draft)
-        await draftStorage(draftKey(form), "delete").catch(() => {});
+      if (form.dataset.draft) {
+        if (intent?.id === values.requestId) {
+          sessionStorage.removeItem(intentKey(path));
+          await draftStorage(snapshotKey(intent.id), "delete").catch(() => {});
+          await draftStorage("confirmation:" + intent.id, "delete").catch(
+            () => {},
+          );
+        }
+        if (savedVersions.has(form))
+          await draftStorage(
+            form.dataset.draft,
+            "deleteVersion",
+            savedVersions.get(form),
+          ).catch(() => {});
+        savedVersions.delete(form);
+        requestIds.delete(form);
+      }
+      if (values.registrationId && !result.redirect) {
+        intent.email = values.email.trim().toLowerCase();
+        sessionStorage.setItem(intentKey(path), JSON.stringify(intent));
+        await draftStorage("confirmation:" + intent.id, "put", {
+          ...intent,
+          path,
+        });
+      }
       if (
         ["login", "signup"].includes(form.dataset.access) &&
         result.redirect &&
         form.dataset.return
       ) {
+        // Email verification may open the login callback in a second tab.
+        const application = new URLSearchParams(location.search).get(
+          "application",
+        );
+        if (form.dataset.access === "login" && application) {
+          const pending = await draftStorage(
+            "confirmation:" + application,
+            "get",
+          ).catch(() => null);
+          intent = pending?.path === path ? pending : null;
+        }
+        if (
+          intent?.stage === "auth" &&
+          result.userId &&
+          (!intent.email || intent.email === values.email.trim().toLowerCase())
+        ) {
+          intent.owner = result.userId;
+          intent.stage = "ready";
+          sessionStorage.setItem(intentKey(path), JSON.stringify(intent));
+        }
         window.location.assign(form.dataset.return);
         return;
       }

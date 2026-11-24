@@ -2,8 +2,10 @@ import { chromium, expect } from "@playwright/test";
 import fs from "node:fs";
 import assert from "node:assert/strict";
 import { renderPublic } from "../src/public.js";
+import { registrationCases } from "./qa-registration.js";
 
 const origin = process.env.MLH_QA_ORIGIN || "http://localhost:8788";
+const registrationOnly = process.argv.includes("--registration");
 const browser = await chromium.launch({
   headless: true,
   executablePath:
@@ -19,7 +21,9 @@ async function fields(page, names) {
     await page.locator('[name="' + name + '"]').fill(value);
 }
 async function test(name, mode, run, viewport = { width: 1440, height: 900 }) {
-  const page = await browser.newPage({ viewport });
+  if (registrationOnly && mode !== "Local registration fixture") return;
+  const context = await browser.newContext({ viewport });
+  const page = await context.newPage();
   page.setDefaultTimeout(9000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -31,7 +35,7 @@ async function test(name, mode, run, viewport = { width: 1440, height: 900 }) {
     results.push({ name, mode, status: "fail", error: String(error), errors });
   } finally {
     console.log(results.at(-1).status + " " + name);
-    await page.close();
+    await context.close();
   }
 }
 async function chooseClass(page, value) {
@@ -60,6 +64,10 @@ try {
       await chooseLocation(page);
       await page.getByRole("button", { name: "Cari Instructor" }).click();
       await expect(page).toHaveURL(/state=Johor.*district=Johor\+Bahru/);
+      // The sample-directory link is offered when the live filter has no matches.
+      await page.locator("[name=name]").fill("QA-" + crypto.randomUUID());
+      await page.getByRole("button", { name: "Cari Instructor" }).click();
+      await expect(page.getByRole("heading", { name: "Tiada profil untuk carian ini" })).toBeVisible();
       await page.getByRole("link", { name: "Terokai profil contoh" }).click();
       await expect(page.locator(".pub-instructor-card")).toHaveCount(6);
       await page.locator("[name=name]").fill("Daniel");
@@ -143,67 +151,7 @@ try {
       await expect(page.locator("[name=name]")).toHaveValue("");
     },
   );
-  await test(
-    "Instructor draft, image preview, signup, and draft restoration",
-    "Worker UI with stubbed auth",
-    async (page) => {
-      let credentials;
-      await client(page, "/api/signup", async (request) => {
-        credentials = request.postDataJSON();
-        return { ok: true, redirect: "/dashboard" };
-      });
-      await page.goto(origin + "/sertai-kami");
-      await chooseLocation(page);
-      await fields(page, {
-        fullName: "Ujian Instructor",
-        displayName: "Cikgu Ujian",
-        email: "test@example.invalid",
-        phone: "0120000000",
-        institute: "Institut Ujian",
-        languages: "Melayu",
-        experience: "5",
-        bio: "Pengenalan untuk ujian fungsi.",
-      });
-      await chooseClass(page, "D");
-      await chooseClass(page, "DA");
-      await page
-        .locator("[name=photo]")
-        .setInputFiles("public/media/daniel.webp");
-      await expect(page.locator("[data-preview] img")).toHaveCount(1);
-      await page.getByRole("button", { name: "Simpan draf" }).click();
-      await expect(page.getByRole("status")).toContainText("Draf disimpan");
-      await page.reload();
-      await expect(page.locator("[name=displayName]")).toHaveValue(
-        "Cikgu Ujian",
-      );
-      await expect(page.locator("[name=district]")).toHaveValue("Johor Bahru");
-      await expect(page.locator("[data-class-summary] > span")).toHaveText([
-        "D",
-        "DA",
-      ]);
-      await expect(page.locator("[data-preview] img")).toHaveCount(1);
-      await page.locator("[name=consent]").check();
-      await page.getByRole("button", { name: "Hantar untuk semakan" }).click();
-      await expect(page).toHaveURL(/signup.*return=%2Fsertai-kami/);
-      await expect(page.locator("[name=accountType]")).toHaveValue(
-        "instructor",
-      );
-      await fields(page, {
-        name: "Ujian Instructor",
-        email: "test@example.invalid",
-        password: "ujian1234",
-      });
-      await page
-        .getByRole("button", { name: "Daftar akaun", exact: true })
-        .click();
-      await expect(page).toHaveURL(origin + "/sertai-kami");
-      await expect(page.locator("[name=displayName]")).toHaveValue(
-        "Cikgu Ujian",
-      );
-      assert.equal(credentials.accountType, "instructor");
-      assert.equal(credentials.return, "/sertai-kami");
-    },
-  );
+  await registrationCases({ test, fields, chooseLocation, chooseClass });
   await test(
     "Institut registration and optional promotion upload",
     "Authenticated fixture UI with stubbed writes",
@@ -382,7 +330,9 @@ try {
 }
 fs.mkdirSync("../website-review/public", { recursive: true });
 fs.writeFileSync(
-  "../website-review/public/functional-results.json",
+  registrationOnly
+    ? "../website-review/public/registration-results.json"
+    : "../website-review/public/functional-results.json",
   JSON.stringify(results, null, 2),
 );
 console.log(JSON.stringify(results, null, 2));

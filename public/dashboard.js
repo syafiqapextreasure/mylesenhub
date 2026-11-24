@@ -6,13 +6,59 @@
       body: JSON.stringify(body),
     });
     let j = await r.json();
-    if (!r.ok || !j.ok) throw Error(j.message || "Tindakan tidak berjaya.");
+    if (!r.ok || !j.ok) {
+      const error = Error(j.message || "Tindakan tidak berjaya.");
+      error.status = r.status;
+      throw error;
+    }
     return j;
   };
   const show = (el, msg) => {
     let n = el.querySelector(".d-feedback");
     if (n) n.textContent = msg;
   };
+  const reviewStates = {
+    semakan: { label: "Menunggu semakan", step: 1 },
+    pengesahan: { label: "Pengesahan", step: 2 },
+    diterbitkan: { label: "Diterbitkan", step: 3 },
+    pembetulan: { label: "Perlu pembetulan", step: 1 },
+  };
+  function setReviewState(form, state) {
+    const view = form.closest("[data-review-view]");
+    const stateInfo = reviewStates[state];
+    if (!view || !stateInfo)
+      throw Error(
+        "Status terkini tidak dapat dipaparkan. Muat semula halaman.",
+      );
+    view.dataset.status = state;
+    const badge = view.querySelector("[data-review-status] .d-pill");
+    badge.className = `d-pill d-${state}`;
+    badge.textContent = stateInfo.label;
+    view.querySelectorAll("[data-review-step]").forEach((step) => {
+      const complete = Number(step.dataset.reviewStep) <= stateInfo.step;
+      step.classList.toggle("completed", complete);
+      if (Number(step.dataset.reviewStep) === stateInfo.step)
+        step.setAttribute("aria-current", "step");
+      else step.removeAttribute("aria-current");
+    });
+    const actions = form.querySelector("[data-review-actions]");
+    actions.replaceChildren();
+    const add = (action, label, style) => {
+      const button = document.createElement("button");
+      button.type = "submit";
+      button.name = "action";
+      button.value = action;
+      button.className = `d-btn ${style}`;
+      button.textContent = label;
+      actions.append(button);
+      return button;
+    };
+    if (state === "semakan" || state === "pengesahan")
+      add("return", "Minta pembetulan", "outline");
+    if (state === "semakan") return add("verify", "Sahkan", "red");
+    if (state === "pengesahan") return add("publish", "Terbitkan", "red");
+    return null;
+  }
   document.addEventListener("submit", async (e) => {
     let f = e.target;
     if (
@@ -40,13 +86,49 @@
         show(f, result.message || "Maklumat berjaya disimpan.");
         if (result.redirect) location.href = result.redirect;
       } else if (f.dataset.review) {
-        let result = await post("/api/review", {
-          id: f.dataset.review,
-          action: btn?.value,
-          note: new FormData(f).get("note"),
+        if (f.dataset.pending === "true") return;
+        const action = btn?.value;
+        const note = new FormData(f).get("note");
+        if (action === "return" && !String(note || "").trim()) {
+          show(f, "Nyatakan pembetulan yang diperlukan.");
+          f.elements.note.focus();
+          return;
+        }
+        f.dataset.pending = "true";
+        f.querySelectorAll("button").forEach((button) => {
+          button.disabled = true;
         });
-        show(f, result.message || "Semakan dikemas kini.");
-        if (result.redirect) location.href = result.redirect;
+        try {
+          const result = await post("/api/review", {
+            id: f.dataset.review,
+            action,
+            note,
+          });
+          const next =
+            result.status ||
+            {
+              verify: "pengesahan",
+              publish: "diterbitkan",
+              return: "pembetulan",
+            }[action];
+          const nextButton = setReviewState(f, next);
+          show(f, result.message || "Semakan dikemas kini.");
+          (nextButton || f.querySelector(".d-feedback"))?.focus();
+        } catch (error) {
+          const message =
+            error.status === 409
+              ? `${error.message} Muat semula halaman untuk melihat status terkini.`
+              : error.status
+                ? error.message
+                : "Sambungan gagal. Muat semula halaman untuk menyemak status sebelum mencuba lagi.";
+          show(f, message);
+          f.querySelectorAll("button").forEach((button) => {
+            button.disabled = false;
+          });
+          f.querySelector(".d-feedback")?.focus();
+        } finally {
+          delete f.dataset.pending;
+        }
       } else if (f.hasAttribute("data-affiliation")) {
         let payload = Object.fromEntries(new FormData(f));
         let result = await post("/api/submissions", {

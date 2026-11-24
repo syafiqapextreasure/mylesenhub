@@ -100,11 +100,16 @@ export async function api(req, env, path) {
   else if (
     ["/api/register/instructor", "/api/register/institut"].includes(path)
   )
-    result = await submit(sql, user, {
-      kind: path.split("/").pop(),
-      payload: b,
-      status: "semakan",
-    });
+    result = await submit(
+      sql,
+      user,
+      {
+        kind: path.split("/").pop(),
+        payload: b,
+        status: "semakan",
+      },
+      b.requestId,
+    );
   else if (path === "/api/directory") {
     check(
       user.role === "admin" && b.action === "unpublish",
