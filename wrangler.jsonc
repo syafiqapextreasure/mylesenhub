@@ -1,0 +1,14 @@
+{
+  "name": "mylesenhub",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "none",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}

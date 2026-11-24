@@ -6,6 +6,8 @@ Direktori komuniti instructor dan institut memandu di Johor dan Melaka. Aplikasi
 
 Gunakan Node.js 24 dan jalankan `npm ci`. Pautkan projek Neon milik anda menggunakan `neon init`, kemudian jalankan `neon deploy` untuk mendapatkan `DATABASE_URL` dan `NEON_AUTH_BASE_URL` dalam `.env.local`. Salin nilai penuh dari tetapan rahsia Neon jika menggunakan kaedah manual. Fail persekitaran dilindungi oleh `.gitignore`.
 
+Untuk projek MyLesenHub yang dipersetujui, arahan pautan ialah `neon init -y --org-id org-floral-night-05793904 --project-id soft-snow-17137240 --branch production --services postgres,auth`. Gunakan semula pautan sedia ada jika folder ini sudah dipautkan.
+
 Jalankan `npm run db:migrate`, kemudian `npm run dev`. Migrasi menambah jadual di schema `mylesenhub`. Untuk ujian binaan Worker, gunakan `npm run build`.
 
 ## Pasang pada Cloudflare Workers
@@ -27,4 +29,3 @@ Laman `/cari-instructor?contoh=1` memaparkan contoh reka bentuk. Direktori biasa
 `npm run qa:preview` menyediakan pratonton visual dengan data contoh pada loopback port 4173. Ia hanya digunakan untuk semakan reka bentuk.
 
 `scripts/acceptance.js` menguji login Neon, sesi, profil, muat naik, penerbitan, pertanyaan dan penarikan direktori. Gunakan branch ujian Neon yang namanya mengandungi `acceptance`, tarik konfigurasi ke `.env.acceptance`, jalankan Worker dengan `npx wrangler dev --env-file .env.acceptance --port 8788`, kemudian jalankan `node --env-file=.env.acceptance scripts/acceptance.js`. Ujian mencipta akaun dan rekod sintetik pada branch itu.
-

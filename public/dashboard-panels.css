@@ -1,0 +1,351 @@
+.dp-section-title {
+  margin: -0.3rem 0 0.75rem;
+  font-size: clamp(1.45rem, 2vw, 2.15rem);
+  letter-spacing: -0.045em;
+}
+.dp-hero {
+  position: relative;
+}
+.dp-hero > div {
+  flex: 1;
+}
+.dp-hero img {
+  align-self: stretch;
+  height: auto;
+}
+.dp-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+.dp-stats.dp-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.dp-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+.dp-stat strong,
+.dp-stat b,
+.dp-workflow small,
+.dp-activity small {
+  display: block;
+}
+.dp-stat b {
+  margin-top: 0.3rem;
+}
+.dp-icon {
+  flex: 0 0 auto;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 0.78rem;
+  background: #e2f1fb;
+  display: grid;
+  place-items: center;
+}
+.dp-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.57fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin: 1rem 0;
+  align-items: start;
+}
+.dp-columns > div {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+.dp-columns > div > .d-quicklinks {
+  margin: 0;
+}
+.dp-columns .dp-admin-table {
+  overflow-x: auto;
+}
+.dp-admin-table table {
+  min-width: 29rem;
+}
+.dp-admin-table th,
+.dp-admin-table td {
+  padding: 0.5rem;
+}
+.dp-row,
+.dp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.dp-row h2 {
+  margin-bottom: 0.45rem;
+}
+.dp-row > a {
+  text-decoration: underline;
+}
+.dp-workflow,
+.dp-activity {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.dp-workflow li,
+.dp-activity li {
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  padding: 0.62rem 0.2rem;
+  border-bottom: 1px solid #deebf4;
+}
+.dp-workflow li:last-child,
+.dp-activity li:last-child {
+  border-bottom: 0;
+}
+.dp-activity time {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.dp-workflow small,
+.dp-activity small {
+  color: #46516e;
+  font-size: 0.85em;
+}
+.dp-wide-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2.65;
+  object-fit: cover;
+  border-radius: 0.65rem;
+}
+.dp-profile h2 {
+  margin: 0.55rem 0;
+}
+.dp-profile dl {
+  border-top: 1px solid #d2e4f4;
+  padding-top: 0.5rem;
+}
+.dp-profile dl > div {
+  display: grid;
+  grid-template-columns: minmax(6em, 0.8fr) 1fr;
+  gap: 0.45rem;
+  margin: 0.3rem 0;
+}
+.dp-profile dt {
+  font-weight: bold;
+}
+.dp-profile dd {
+  margin: 0;
+}
+.dp-profile > .d-btn,
+.dp-posters .d-btn {
+  display: flex;
+  width: 100%;
+  margin-top: 0.8rem;
+}
+.dp-empty-photo {
+  background: #e5f3fc;
+  border-radius: 0.5rem;
+  display: grid;
+  place-items: center;
+  min-height: 6rem;
+}
+.dp-empty-photo .d-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.dp-gallery-heads {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.dp-gallery-heads.dp-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.dp-gallery-head {
+  display: flex;
+  align-items: center;
+  gap: 1.3rem;
+}
+.dp-gallery-head h2 {
+  margin-bottom: 0.4rem;
+}
+.dp-gallery-head p {
+  margin: 0.2rem 0 0.6rem;
+}
+.dp-gallery-head > div:first-child {
+  width: clamp(6.5rem, 12vw, 12rem);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.dp-thumb {
+  width: 100%;
+  max-height: 10rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+.dp-choose {
+  position: relative;
+  overflow: hidden;
+}
+.dp-choose input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.dp-choose:focus-within {
+  outline: 3px solid #2272d6;
+  outline-offset: 2px;
+}
+.dp-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0.6rem 0 1rem;
+}
+.dp-gallery figure {
+  margin: 0;
+  min-width: 0;
+  border-radius: 0.5rem;
+  border: 1px solid #d6e5f0;
+  padding: 0.45rem;
+}
+.dp-gallery figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1.95;
+  object-fit: cover;
+}
+.dp-gallery figcaption {
+  margin: 0.4rem 0.15rem 0;
+  font-weight: 600;
+}
+.dp-gallery figure .d-btn {
+  font-size: 0.9rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.6rem;
+}
+.dp-posters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.dp-posters article {
+  display: flex;
+  flex-direction: column;
+}
+.dp-posters .dp-wide-photo {
+  aspect-ratio: 1.62;
+}
+.dp-posters h2 {
+  font-size: clamp(1.1rem, 1.4vw, 1.5rem);
+  margin: 0.75rem 0;
+}
+.dp-posters .dp-row {
+  font-size: 0.91rem;
+}
+.dp-poster-preview img {
+  display: block;
+  max-width: 100%;
+  border-radius: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.dp-poster-preview img[hidden] {
+  display: none;
+}
+.dp-tip {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #ddebfa;
+  margin-top: 1.4rem;
+}
+@media (max-width: 1050px) {
+  .dp-stats.dp-four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dp-gallery-heads.dp-two {
+    grid-template-columns: 1fr;
+  }
+  .dp-posters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dp-columns {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+}
+@media (max-width: 800px) {
+  .dp-columns {
+    grid-template-columns: 1fr;
+  }
+  .dp-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dp-stat {
+    padding: 0.75rem;
+  }
+  .dp-stats {
+    grid-template-columns: repeat(auto-fit, minmax(9em, 1fr));
+  }
+  .dp-stat .dp-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+  .dp-admin-table .d-btn {
+    padding: 0.4rem 0.5rem;
+  }
+}
+@media (max-width: 550px) {
+  .dp-hero img {
+    align-self: center;
+    width: 36%;
+    height: auto;
+  }
+  .dp-gallery,
+  .dp-posters {
+    grid-template-columns: 1fr;
+  }
+  .dp-gallery-head {
+    gap: 0.8rem;
+  }
+  .dp-toolbar > .d-btn {
+    margin-bottom: 1rem;
+  }
+  .dp-stats .d-pill {
+    white-space: normal;
+  }
+  .dp-row {
+    gap: 0.35rem;
+  }
+  .dp-columns .d-quicklinks {
+    grid-template-columns: 1fr;
+  }
+  .dp-activity time {
+    font-size: 0.85em;
+  }
+  .dp-profile dl > div {
+    grid-template-columns: 7rem 1fr;
+  }
+}
+.dp-stat > div {
+  min-width: 0;
+}
+.dp-stat .d-pill {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.d-fields,
+.d-field {
+  min-width: 0;
+}
+.d-field input,
+.d-field textarea,
+.d-field select {
+  max-width: 100%;
+  width: 100%;
+}
