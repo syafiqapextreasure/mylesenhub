@@ -28,17 +28,14 @@
   border-right: 1px solid #d5e6f7;
 }
 .d-logo {
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: -1.5px;
-  white-space: nowrap;
+  display: block;
+  width: min(100%, 13.5rem);
+  line-height: 0;
 }
-.d-logo span {
-  background: #f00017;
-  color: #fff;
-  border-radius: 5px;
-  padding: 0 5px;
-  margin-left: 4px;
+.d-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 .d-role {
   margin: 25px 0 20px;
@@ -499,7 +496,7 @@
     padding: 12px 16px;
   }
   .d-logo {
-    font-size: 25px;
+    width: 10.5rem;
   }
   .d-role,
   .d-person,

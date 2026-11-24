@@ -34,6 +34,8 @@ Laman `/cari-instructor?contoh=1` memaparkan contoh reka bentuk. Direktori biasa
 
 ## Semakan
 
+[Perbandingan reka bentuk dan halaman dashboard (ZIP)](docs/MyLesenHub-Perbandingan-Dashboard.zip) merangkumi 18 halaman untuk log masuk, instructor, institut dan admin. Ekstrak ZIP, buka `index.html`, kemudian pilih peranan dan saiz skrin untuk melihat reka bentuk diluluskan di sebelah tangkapan halaman sebenar dengan data contoh.
+
 `npm run qa:preview` menyediakan pratonton visual dengan data contoh pada loopback port 4173. Ia hanya digunakan untuk semakan reka bentuk.
 
 `scripts/acceptance.js` menguji login Neon, sesi, profil, muat naik, penerbitan, pertanyaan dan penarikan direktori. Gunakan branch ujian Neon yang namanya mengandungi `acceptance`, tarik konfigurasi ke `.env.acceptance`, jalankan Worker dengan `npx wrangler dev --env-file .env.acceptance --port 8788`, kemudian jalankan `node --env-file=.env.acceptance scripts/acceptance.js`. Ujian mencipta akaun dan rekod sintetik pada branch itu.

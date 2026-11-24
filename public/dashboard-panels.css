@@ -335,6 +335,11 @@
 .dp-stat > div {
   min-width: 0;
 }
+@media (max-width: 360px) {
+  .dp-stats.dp-four {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .dp-stat .d-pill {
   white-space: normal;
   overflow-wrap: anywhere;

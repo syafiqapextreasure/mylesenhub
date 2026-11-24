@@ -3,20 +3,6 @@ const locationData = JSON.parse(
 );
 const locationForms = [...document.querySelectorAll("[data-location]")];
 
-const profileSectionLinks = [...document.querySelectorAll(".pub-aina-nav a")];
-if (profileSectionLinks.length) {
-  const updateProfileSection = () => {
-    const current =
-      profileSectionLinks.find((link) => link.hash === window.location.hash) ||
-      profileSectionLinks[0];
-    for (const link of profileSectionLinks)
-      link.removeAttribute("aria-current");
-    current.setAttribute("aria-current", "location");
-  };
-  window.addEventListener("hashchange", updateProfileSection);
-  updateProfileSection();
-}
-
 function syncLocations(form, changed = "") {
   const state = form.elements.state;
   const district = form.elements.district;

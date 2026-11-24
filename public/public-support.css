@@ -80,20 +80,6 @@
     width: 1.95rem;
     height: 1.95rem;
   }
-  .pub-join-banner {
-    min-height: clamp(19rem, 35.6vw, 31rem);
-  }
-  .pub-join-banner .pub-banner-copy {
-    max-width: 49%;
-  }
-  .pub-join-banner .pub-banner-copy strong {
-    max-width: 24ch;
-    font-size: clamp(1.6rem, 2.5vw, 2.4rem);
-  }
-  .pub-join-banner .pub-banner-art {
-    width: 54%;
-    height: 100%;
-  }
   .pub-join-institute {
     min-height: clamp(6rem, 13vw, 10rem);
   }
@@ -242,9 +228,6 @@
   }
 }
 @media (min-width: 761px) {
-  .pub-shell:has(.pub-registration-tabs) .pub-banner-copy {
-    max-width: 52%;
-  }
   .pub-shell:has(.pub-registration-tabs) .pub-banner-copy strong {
     max-width: 22ch;
   }

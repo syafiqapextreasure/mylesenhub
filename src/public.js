@@ -31,15 +31,27 @@ const art = (name) => "/media/" + name + ".webp";
 const responsiveWidths = {
   "home-hero": 2014,
   "amir-hero": 1774,
+  "about-hero": 1839,
+  "join-hero": 1817,
+  "institute-hero": 1838,
+  "about-team": 1511,
+  "join-team": 1586,
+  "institute-team": 1576,
   "home-johor": 1748,
   "home-melaka": 1748,
   "search-hero": 1900,
   "contact-hero": 1775,
 };
+const responsiveSizes = {
+  "home-hero": "100vw",
+  "about-team": "(max-width: 760px) 96vw, 56vw",
+  "join-team": "(max-width: 460px) 94vw, (max-width: 760px) 46vw, 32vw",
+  "institute-team": "(max-width: 460px) 94vw, (max-width: 760px) 46vw, 32vw",
+};
 const photo = (url, alt, className = "", eager = false) => {
   const key = String(url).match(/^\/media\/([a-z-]+)\.webp$/)?.[1];
   const sizes =
-    key === "home-hero" ? "100vw" : "(max-width: 760px) 100vw, 55vw";
+    responsiveSizes[key] || "(max-width: 760px) 96vw, 50vw";
   const variants =
     key in responsiveWidths
       ? ' srcset="/media/' +
@@ -98,7 +110,7 @@ const icon = (name) =>
   "</svg>";
 const brand = () =>
   '<a href="/" class="pub-brand" aria-label="MyLesenHub, Utama">' +
-  photo(art("brand"), "", "", true) +
+  '<img src="/media/brand.svg" alt="" width="270" height="54">' +
   "</a>";
 const button = (label, href, variant = "") =>
   '<a class="pub-btn ' +
@@ -109,11 +121,17 @@ const button = (label, href, variant = "") =>
   label +
   "</a>";
 const pill = (label) => '<span class="pub-pill">' + label + "</span>";
+// The approved Amir cutout is the high-resolution artwork for the shared profile header.
 const banner = (name, title, trail, lead = "", options = "") =>
   '<section class="pub-banner ' +
   options +
   '">' +
-  photo(art(name + "-hero"), "", "pub-banner-art", true) +
+  photo(
+    art(name === "profile" ? "amir-hero" : name + "-hero"),
+    "",
+    ["search", "contact"].includes(name) ? "pub-banner-art pub-banner-blend" : "pub-banner-art",
+    true,
+  ) +
   '<div class="pub-banner-copy"><nav class="pub-breadcrumb" aria-label="Jejak halaman"><a href="/">Utama</a>' +
   trail
     .map(
@@ -505,175 +523,22 @@ const mainSearch = (data, url) => {
   );
 };
 const profilePictures = (item) => {
-  const known = {
-    "cikgu-amir": ["amir-lesson", "amir-circuit"],
-    "cikgu-aina": ["aina-lesson", "aina-coaching"],
-    "cikgu-daniel": ["profile-lesson", "profile-car", "profile-coaching"],
-  };
-  const urls = item.gallery?.length
-    ? item.gallery
-    : item.demo
-      ? (known[item.slug] || []).map(art)
-      : [];
-  return urls.map((entry, index) => {
-    const url = typeof entry === "string" ? entry : entry.url;
-    const caption = item.galleryCaptions?.[url];
-    return caption
-      ? '<figure class="pub-captioned">' +
-          photo(url, caption) +
-          "<figcaption>" +
-          esc(caption) +
-          "</figcaption></figure>"
-      : photo(url, "Gambar pembelajaran " + (index + 1));
-  });
-};
-const profileAmir = (item, location, backHref, images) => {
-  const details = [
-    ["pin", "Negeri", item.state],
-    ["map", "Daerah", item.district],
-    ["building", "Institut", item.institute],
-    ["chat", "Bahasa", item.languages],
-  ];
-  return (
-    '<div class="pub-shell pub-amir">' +
-    banner(
-      "amir",
-      "Profil Instructor",
-      [["Cari Instructor", backHref], [item.name]],
-      "",
-      "pub-profile-banner",
-    ) +
-    '<section class="pub-panel pub-amir-lead pub-section">' +
-    photo(art("amir-profile"), item.name, "", true) +
-    "<div>" +
-    pill(demoLabel) +
-    "<h2>" +
-    esc(item.name) +
-    "</h2><h3>" +
-    esc(item.institute) +
-    '</h3><p class="pub-with-icon">' +
-    icon("pin") +
-    location +
-    '</p><div class="pub-language-tags">' +
-    String(item.languages)
-      .split(" & ")
-      .map((lang) => pill(icon("chat") + " Bahasa " + esc(lang)))
-      .join("") +
-    "</div></div></section>" +
-    '<section class="pub-amir-details pub-section"><div><article class="pub-panel"><h2>Tentang ' +
-    esc(item.name) +
-    "</h2><p>" +
-    "Kenali asas pemanduan secara berperingkat, daripada kawalan kereta hingga keyakinan di jalan raya." +
-    '</p><hr><h3>Maklumat instructor</h3><div class="pub-amir-facts">' +
-    details
-      .map(
-        ([name, title, value]) =>
-          "<div>" +
-          icon(name) +
-          "<div><b>" +
-          title +
-          "</b><p>" +
-          esc(value) +
-          "</p></div></div>",
-      )
-      .join("") +
-    "</div></article>" +
-    '<article class="pub-panel"><h2>Galeri pembelajaran</h2><div class="pub-gallery-grid">' +
-    images
-      .map(
-        (image) =>
-          "<figure>" +
-          image +
-          "<figcaption>Gambar contoh</figcaption></figure>",
-      )
-      .join("") +
-    '</div></article></div><aside><article class="pub-panel"><h2>Mula berkenalan</h2><p>Tanya tentang pembelajaran dan lokasi latihan.</p>' +
-    contactLink(item) +
-    '</article><blockquote class="pub-blue"><span aria-hidden="true">“</span>' +
-    slogan +
-    "</blockquote>" +
-    button(icon("back") + " Kembali ke carian", backHref, "pub-neutral") +
-    "</aside></section>" +
-    '<section class="pub-strip pub-amir-location"><span class="pub-round">' +
-    icon("pin") +
-    "</span><div><h3>" +
-    esc(item.institute) +
-    "</h3><p>" +
-    location +
-    "</p></div></section></div>"
-  );
-};
-const profileAina = (item, location, backHref, images) => {
-  const details = [
-    ["pin", "Negeri", item.state],
-    ["map", "Daerah", item.district],
-    ["temple", "Institut", item.institute],
-  ];
-  return (
-    '<div class="pub-shell pub-aina"><nav class="pub-breadcrumb pub-section" aria-label="Jejak halaman"><a href="/">Utama</a><span aria-hidden="true">/</span><a href="' +
-    backHref +
-    '">Cari Instructor</a><span aria-hidden="true">/</span><span aria-current="page">' +
-    esc(item.name) +
-    "</span></nav>" +
-    '<section class="pub-blue pub-aina-lead">' +
-    photo(art("aina-hero"), "", "", true) +
-    "<div>" +
-    pill(demoLabel) +
-    '<p class="pub-aina-kicker">Profil Instructor</p><h1>' +
-    esc(item.name) +
-    '</h1><p class="pub-with-icon pub-aina-location">' +
-    icon("pin") +
-    "<span>" +
-    esc(item.institute) +
-    "<br>" +
-    location +
-    '</span></p><p class="pub-aina-slogan">' +
-    slogan +
-    '</p><i aria-hidden="true"></i>' +
-    contactLink(item) +
-    "</div></section>" +
-    '<nav class="pub-aina-nav" aria-label="Bahagian profil"><a href="#pengenalan" aria-current="location">Pengenalan</a><a href="#maklumat">Maklumat</a><a href="#galeri">Galeri</a></nav>' +
-    '<section id="maklumat" class="pub-about-cards">' +
-    details
-      .map(([name, title, value]) => card(name, title, esc(value)))
-      .join("") +
-    "</section>" +
-    '<section id="pengenalan" class="pub-about-intro pub-section"><div><h2>Kenali ' +
-    esc(item.name) +
-    "</h2><p>" +
-    "Pembelajaran yang tenang dan berperingkat membantu pelajar memahami asas pemanduan dengan lebih yakin." +
-    "</p></div>" +
-    card(
-      "chat",
-      "Bahasa pengajaran",
-      "Bahasa Melayu • Bahasa Inggeris",
-      "",
-      "pub-blue",
-    ) +
-    "</section>" +
-    '<section id="galeri" class="pub-gallery pub-section"><h2>Suasana pembelajaran</h2><div class="pub-gallery-grid">' +
-    images
-      .map(
-        (image) =>
-          "<figure>" +
-          image +
-          "<figcaption>Gambar contoh</figcaption></figure>",
-      )
-      .join("") +
-    "</div></section>" +
-    '<section class="pub-strip"><div><h2>Sedia untuk mula belajar?</h2><p>Hubungi ' +
-    esc(item.name) +
-    " untuk maklumat lanjut.</p></div><div>" +
-    contactLink(item) +
-    '</div></section><a class="pub-with-icon pub-aina-back" href="' +
-    backHref +
-    '">' +
-    icon("back") +
-    " Kembali ke carian</a></div>"
-  );
+  return (item.gallery || [])
+    .map((entry) => (typeof entry === "string" ? { url: entry } : entry))
+    .filter((entry) => entry?.url)
+    .map(({ url, alt, caption }, index) => {
+      const description = caption || item.galleryCaptions?.[url];
+      return (
+        "<figure>" +
+        photo(url, alt || description || "Gambar pembelajaran " + (index + 1)) +
+        (description ? "<figcaption>" + esc(description) + "</figcaption>" : "") +
+        "</figure>"
+      );
+    });
 };
 const profile = (item) => {
-  const location = esc([item.district, item.state].filter(Boolean).join(", "));
+  const location = [item.district, item.state].filter(Boolean).join(", ");
+  const portrait = item.detailPhoto || item.photo;
   const backHref = search + (item.demo ? "?contoh=1" : "");
   const help =
     "<h3>Hubungi " +
@@ -696,10 +561,15 @@ const profile = (item) => {
     ["chat", "Other", item.other],
   ].filter(([, , value]) => (Array.isArray(value) ? value.length : value));
   const images = profilePictures(item);
-  if (item.demo && item.slug === "cikgu-amir")
-    return profileAmir(item, location, backHref, images);
-  if (item.demo && item.slug === "cikgu-aina")
-    return profileAina(item, location, backHref, images);
+  const details = rows.map(([name, label, value]) =>
+    "<div><dt>" +
+    icon(name) +
+    " <b>" +
+    label +
+    '</b><span aria-hidden="true">:</span></dt><dd>' +
+    (Array.isArray(value) ? value.map((entry) => pill(esc(entry))).join(" ") : esc(value)) +
+    "</dd></div>",
+  ).join("");
   return (
     '<div class="pub-shell pub-profile-page">' +
     banner(
@@ -710,18 +580,21 @@ const profile = (item) => {
       "pub-profile-banner",
     ) +
     '<div class="pub-profile pub-section"><aside><div class="pub-panel pub-profile-side">' +
-    (item.photo
-      ? photo(item.photo, item.name, "pub-profile-photo", true)
-      : '<span class="pub-placeholder">' + icon("person") + "</span>") +
+    (portrait
+      ? photo(portrait, item.name, "pub-profile-photo", true)
+      : '<span class="pub-profile-photo pub-placeholder" aria-hidden="true">' +
+        icon("person") +
+        "</span>") +
     "<h2>" +
     esc(item.name) +
-    '</h2><p class="pub-with-icon">' +
-    icon("building") +
-    esc(item.institute) +
-    '</p><p class="pub-with-icon">' +
-    icon("pin") +
-    location +
-    "</p><hr>" +
+    "</h2>" +
+    (item.institute
+      ? '<p class="pub-with-icon">' + icon("building") + esc(item.institute) + "</p>"
+      : "") +
+    (location
+      ? '<p class="pub-with-icon">' + icon("pin") + esc(location) + "</p>"
+      : "") +
+    "<hr>" +
     help +
     '<a class="pub-reset pub-with-icon" href="' +
     backHref +
@@ -733,22 +606,9 @@ const profile = (item) => {
       : "") +
     "</aside><div><h2>Kenali instructor anda</h2>" +
     (item.bio ? '<p class="pub-profile-bio">' + esc(item.bio) + "</p>" : "") +
-    '<section class="pub-panel pub-profile-details"><h3>Maklumat instructor</h3><dl>' +
-    rows
-      .map(
-        ([name, label, value]) =>
-          "<div><dt>" +
-          icon(name) +
-          " <b>" +
-          label +
-          '</b><span aria-hidden="true">:</span></dt><dd>' +
-          (Array.isArray(value)
-            ? value.map((entry) => pill(esc(entry))).join(" ")
-            : esc(value)) +
-          "</dd></div>",
-      )
-      .join("") +
-    "</dl></section>" +
+    '<section class="pub-panel pub-profile-details"><h3>Maklumat instructor</h3>' +
+    (details ? "<dl>" + details + "</dl>" : "<p>Butiran belum tersedia.</p>") +
+    "</section>" +
     (images.length
       ? '<section class="pub-gallery"><h2>Galeri pembelajaran</h2><div class="pub-panel"><div class="pub-gallery-grid">' +
         images.join("") +
@@ -758,11 +618,11 @@ const profile = (item) => {
       : "") +
     '</div></div><section class="pub-strip"><span class="pub-round">' +
     icon("pin") +
-    "</span><div><h3>Belajar memandu bermula dengan instructor yang sesuai.</h3><p>" +
-    esc(item.institute) +
-    " · " +
-    location +
-    "</p></div>" +
+    "</span><div><h3>Belajar memandu bermula dengan instructor yang sesuai.</h3>" +
+    ([item.institute, location].some(Boolean)
+      ? "<p>" + esc([item.institute, location].filter(Boolean).join(" · ")) + "</p>"
+      : "") +
+    "</div>" +
     button("Lihat carian lain", backHref, "pub-outline") +
     "</section></div>"
   );

@@ -2,6 +2,11 @@ import { chromium } from "@playwright/test";
 import fs from "node:fs";
 const out = "../website-review/public";
 fs.mkdirSync(out, { recursive: true });
+const profileReference = "Instructor_Profile_Designs/Profil_03_Cikgu_Daniel_SPIM_L_v2.png";
+const profileVariants = {
+  amir: "Instructor_Profile_Designs/Profil_01_Cikgu_Amir.png",
+  aina: "Instructor_Profile_Designs/Profil_02_Cikgu_Aina.png",
+};
 const approved = {
   home: ["/", "MyLesenHub_Designs/01_Moden_Profesional_Supplied_Hero_v6.png"],
   directory: [
@@ -10,15 +15,15 @@ const approved = {
   ],
   amir: [
     "/instructor/cikgu-amir?contoh=1",
-    "Instructor_Profile_Designs/Profil_01_Cikgu_Amir.png",
+    profileReference,
   ],
   aina: [
     "/instructor/cikgu-aina?contoh=1",
-    "Instructor_Profile_Designs/Profil_02_Cikgu_Aina.png",
+    profileReference,
   ],
   daniel: [
     "/instructor/cikgu-daniel?contoh=1",
-    "Instructor_Profile_Designs/Profil_03_Cikgu_Daniel_SPIM_L_v2.png",
+    profileReference,
   ],
   about: ["/tentang-kami", "Support_Page_Designs/01_Tentang_Kami_L_v2.png"],
   contact: ["/hubungi", "Support_Page_Designs/02_Hubungi.png"],
@@ -36,10 +41,13 @@ const comparisonNotes = {
   home: "Gambar asal Putrajaya serta lencana L dan P digunakan dalam hero. Kedudukan gambar negeri, pemisah empat langkah dan pautan Sertai Komuniti diselaraskan.",
   directory:
     "Lebar penapis, tinggi hero, jarak kad dan potret Cikgu Daniel diselaraskan. Enam profil contoh dipaparkan untuk membandingkan grid dengan rujukan.",
-  amir: "Potret, pengenalan, bahasa, kapsyen galeri, petikan dan panel lokasi diselaraskan. Hero Amir menggunakan Axia daripada lakarannya sendiri, dengan pelekat L pada bonet.",
-  aina: "Gambar hero, kedudukan teks, garisan merah pautan aktif, panel bahasa dan nisbah foto galeri diselaraskan.",
+  amir: "Profil Amir menggunakan susun atur bersama dengan potret, pengenalan dan galeri Amir sendiri.",
+  aina: "Profil Aina menggunakan susun atur bersama dengan potret, pengenalan dan galeri Aina sendiri.",
   daniel:
-    "Lebar panel profil, pemisah label dan nilai, cip kelas SPIM serta tiga gambar galeri diselaraskan. Butang hubungan pada profil contoh dilumpuhkan.",
+    "Susun atur profil Daniel v2 menjadi rujukan struktur untuk semua profil instructor. Kandungan dan galeri kekal khusus kepada instructor.",
+  farah: "Profil contoh Farah dalam templat bersama. Galeri dipaparkan apabila gambar tersedia.",
+  hafiz: "Profil contoh Hafiz dalam templat bersama. Galeri dipaparkan apabila gambar tersedia.",
+  "mei-ling": "Profil contoh Mei Ling dalam templat bersama. Galeri dipaparkan apabila gambar tersedia.",
   about:
     "Nisbah foto berkumpulan, kedudukan kad manfaat dan jarak empat langkah diselaraskan dengan rujukan.",
   contact:
@@ -51,9 +59,9 @@ const comparisonNotes = {
     "Dua panel desktop, gambar, tinggi medan dan butang log masuk diselaraskan. Pada telefon, panel disusun menegak.",
 };
 const extras = {
-  farah: ["/instructor/cikgu-farah?contoh=1"],
-  hafiz: ["/instructor/cikgu-hafiz?contoh=1"],
-  "mei-ling": ["/instructor/cikgu-mei-ling?contoh=1"],
+  farah: ["/instructor/cikgu-farah?contoh=1", profileReference],
+  hafiz: ["/instructor/cikgu-hafiz?contoh=1", profileReference],
+  "mei-ling": ["/instructor/cikgu-mei-ling?contoh=1", profileReference],
   "instructor-registration": ["/daftar-instructor"],
   signup: ["/signup"],
   forgot: ["/lupa-kata-laluan"],
@@ -156,16 +164,28 @@ const titles = {
   terms: "Terma",
   "empty-directory": "Carian tanpa hasil",
 };
-const nav = Object.keys(routes)
+const publicPages = [
+  "home", "directory", "amir", "aina", "daniel", "farah", "hafiz", "mei-ling",
+  "about", "contact", "join", "institute",
+];
+const additionalPages = Object.keys(routes).filter((key) => !publicPages.includes(key));
+const navLinks = (keys) => keys
   .map((key) => `<a href="#${key}">${titles[key]}</a>`)
   .join(" · ");
 function figure(src, label, display = "") {
   return `<figure ${display}><figcaption>${label}</figcaption><a href="${src}"><img loading="lazy" src="${src}" alt="${label}"></a></figure>`;
 }
-const sections = Object.entries(routes)
-  .map(([key, [, reference]]) => {
+const renderSections = (keys) => keys
+  .map((key) => {
+    const [, reference] = routes[key];
+    const referenceLabel = reference === profileReference
+      ? "Rujukan templat profil bersama · Daniel v2"
+      : "Reka bentuk diluluskan";
     const original = reference
-      ? figure("../../" + reference, "Reka bentuk diluluskan")
+      ? figure("../../" + reference, referenceLabel)
+      : "";
+    const variant = profileVariants[key]
+      ? `<p><a href="../../${profileVariants[key]}">Lihat lakaran variasi asal ${titles[key]}</a></p>`
       : "";
     const views = widths
       .map(([view, width]) =>
@@ -176,7 +196,7 @@ const sections = Object.entries(routes)
         ),
       )
       .join("");
-    return `<section id="${key}"><h2>${titles[key]}</h2><p>${comparisonNotes[key] || "Halaman tambahan mengikut gaya projek. Tiada lakaran asal berasingan."}</p><div class="pair">${original}${views}</div></section>`;
+    return `<section id="${key}"><h2>${titles[key]}</h2><p>${comparisonNotes[key] || "Halaman tambahan mengikut gaya projek. Tiada lakaran asal berasingan."}</p>${variant}<div class="pair">${original}${views}</div></section>`;
   })
   .join("");
 const sizes = widths
@@ -200,9 +220,12 @@ const typography = measured
   : "";
 const html = `<!doctype html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyLesenHub · Perbandingan halaman awam</title><style>
 *{box-sizing:border-box}html{scroll-padding-top:5rem}body{margin:0 auto;padding:clamp(.8rem,2vw,2.8rem);font:clamp(1rem,.87rem + .35vw,1.42rem)/1.5 system-ui,sans-serif;max-width:170rem;color:#131a3b;background:#f1f6fa}h1,h2{line-height:1.12}h1{margin:.5rem 0}h2{margin:0}p{max-width:80ch}a{color:#174f84}section,details{background:white;border:1px solid #d3dfeb;border-radius:1rem;padding:clamp(.75rem,1.5vw,1.8rem);margin:1rem 0}summary,label{font-weight:700}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;align-items:start}figure{margin:0;min-width:0}img{width:100%;height:auto;display:block;border:1px solid #d6e2ee}figcaption{padding:.5rem 0;font-weight:650}.picker{position:sticky;top:0;background:#e6f0f9;z-index:1;padding:.5rem .75rem;border-block:1px solid #c3d4e2}select{padding:.45rem;font:inherit;color:inherit;border:1px solid #9cabbd;border-radius:.45rem}table{border-collapse:collapse;margin:1rem 0}th,td{text-align:left;border-bottom:1px solid #d4dfeb;padding:.4em .75em}caption{text-align:left}nav{line-height:1.9}@media(max-width:600px){.pair{grid-template-columns:1fr}.picker{font-size:1rem}details{overflow-x:auto}}
-</style></head><body><h1>Perbandingan halaman awam MyLesenHub</h1><p>Bandingkan 10 reka bentuk yang diluluskan dengan paparan laman pada lebar pilihan. Klik gambar untuk melihat saiz penuhnya. Profil dan institusi dalam pratonton menggunakan data contoh.</p>
-<details><summary>Pilih halaman</summary><nav>${nav}</nav></details>${typography}
-<div class="picker"><label for="width">Lebar paparan laman </label><select id="width">${sizes}</select></div>${sections}
+.review-switch{display:inline-flex;align-items:center;gap:.55em;background:#0c2750;color:white;border-radius:.55rem;padding:.6em .95em;font-weight:740;text-decoration:none}.review-switch:hover{background:#16447d}.review-switch:focus-visible{outline:3px solid #285c9b;outline-offset:3px}.review-group{margin-top:1.35em}
+</style></head><body><header><h1>Perbandingan halaman awam MyLesenHub</h1><p>Bandingkan 12 halaman awam pada lima lebar skrin. Klik gambar untuk melihat saiz penuhnya.</p><nav aria-label="Semakan projek"><a class="review-switch" href="../dashboard/index.html">Lihat perbandingan dashboard Instructor, Institut &amp; Admin <span aria-hidden="true">→</span></a></nav></header>
+<details><summary>Pilih halaman</summary><nav aria-label="Halaman awam">${navLinks(publicPages)}</nav><nav aria-label="Paparan tambahan">${navLinks(additionalPages)}</nav></details>
+<details><summary>Data pratonton dan rujukan profil</summary><p>Direktori dan profil di sini menggunakan rekod contoh. Profil awam sebenar hanya memaparkan rekod yang telah diterbitkan. Butang hubungan pada profil contoh dilumpuhkan. Borang pendaftaran bermula kosong.</p><p>Semua profil menggunakan susun atur Daniel v2 dengan potret, pengenalan dan galeri masing-masing. Lakaran Amir dan Aina masih boleh dibuka sebagai rujukan variasi asal.</p></details>${typography}
+<div class="picker"><label for="width">Lebar paparan laman </label><select id="width">${sizes}</select></div>${renderSections(publicPages)}
+<h2 class="review-group">Paparan tambahan</h2>${renderSections(additionalPages)}
 <p><a href="visual-results.json">Keputusan semakan visual</a> · <a href="functional-results.json">Keputusan ujian fungsi</a></p>
 <script>document.getElementById("width").addEventListener("change",event=>{document.querySelectorAll("[data-view]").forEach(el=>{el.hidden=el.dataset.view!==event.target.value})})</script></body></html>`;
 fs.writeFileSync(out + "/index.html", html);

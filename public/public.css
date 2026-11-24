@@ -268,6 +268,7 @@ body:has(.pub-site) {
   position: relative;
   isolation: isolate;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   margin-top: clamp(1rem, 2.5vw, 2.3rem);
   border-radius: 1.3rem;
@@ -290,19 +291,17 @@ body:has(.pub-site) {
 }
 .pub-banner-copy {
   position: relative;
+  grid-area: 1 / 1;
   padding: clamp(1.25rem, 2.8vw, 2.6rem);
-  max-width: 59%;
 }
 .pub-banner-art {
-  position: absolute;
-  width: 54%;
-  height: 114%;
-  inset: auto 0 0 auto;
+  grid-area: 1 / 2;
+  width: 100%;
+  height: 100%;
+  max-height: clamp(13.5rem, 22vw, 22rem);
+  align-self: center;
   object-fit: contain;
-  object-position: right bottom;
-  border-radius: 0 1.3rem 1.3rem 0;
-  mask-image: linear-gradient(to right, transparent, #000 15%);
-  z-index: -1;
+  object-position: center;
 }
 .pub-breadcrumb {
   display: flex;
@@ -778,9 +777,17 @@ body:has(.pub-site) {
   object-fit: cover;
   border-radius: 0.65rem;
 }
-.pub-gallery-grid img:first-child:nth-last-child(odd) {
+.pub-gallery-grid figure:first-child:nth-last-child(odd) {
   grid-column: 1/-1;
+}
+.pub-gallery-grid figure:first-child:nth-last-child(odd) img {
   aspect-ratio: 2.03;
+}
+.pub-gallery-grid figcaption {
+  color: var(--pub-muted);
+  margin-top: 0.35em;
+  font-size: 0.88em;
+  overflow-wrap: anywhere;
 }
 .pub-gallery small {
   margin-top: 0.5rem;
@@ -919,12 +926,6 @@ body:has(.pub-site) {
   width: 1.3em;
   height: 1.3em;
   background: #fff;
-}
-.pub-join-banner {
-  min-height: clamp(15rem, 28vw, 26rem);
-}
-.pub-join-banner .pub-banner-copy strong {
-  max-width: 27ch;
 }
 .pub-join-institute {
   padding: 1rem clamp(1rem, 2.2vw, 2.4rem);
@@ -1367,13 +1368,10 @@ body:has(.pub-site) {
     order: -1;
   }
   .pub-banner-art {
-    position: static;
     width: 100%;
+    height: auto;
     max-height: 12rem;
     object-fit: contain;
-    object-position: right bottom;
-    mask-image: linear-gradient(135deg, transparent, #000 27%);
-    border-radius: 0;
   }
   .pub-banner:has(.pub-banner-copy h1 br) .pub-banner-copy h1 br {
     display: none;
@@ -1421,8 +1419,14 @@ body:has(.pub-site) {
     align-items: center;
     gap: 0.55rem 0.9rem;
   }
-  .pub-profile-side img {
+  .pub-profile-side .pub-profile-photo {
+    grid-row: span 2;
+  }
+  .pub-profile-side:has(.pub-profile-photo + h2 + p + p) .pub-profile-photo {
     grid-row: span 3;
+  }
+  .pub-profile-side:not(:has(.pub-profile-photo + h2 + p)) .pub-profile-photo {
+    grid-row: auto;
   }
   .pub-profile-side h2,
   .pub-profile-side p,
@@ -1538,7 +1542,7 @@ body:has(.pub-site) {
     grid-template-columns: 1fr;
   }
   .pub-join-aside img {
-    max-height: 11rem;
+    height: auto;
   }
   .pub-fields {
     gap: 0.8rem 0.5rem;
@@ -1569,205 +1573,13 @@ body:has(.pub-site) {
 }
 .pub-site .pub-brand img {
   width: 100%;
+  height: auto;
   object-fit: contain;
-}
-.pub-amir-lead {
-  padding: 1rem;
-  display: grid;
-  grid-template-columns: minmax(10rem, 0.48fr) minmax(0, 1fr);
-  gap: 1.6rem;
-  align-items: center;
-}
-.pub-amir-lead > img {
-  width: 100%;
-  aspect-ratio: 1.1;
-  object-fit: cover;
-  border-radius: 0.8rem;
-}
-.pub-amir-lead h2 {
-  font-size: clamp(2.25rem, 4.75vw, 4.4rem);
-  margin: 0.35em 0 0.15em;
-}
-.pub-amir-lead p {
-  margin-top: 0.65em;
-}
-.pub-language-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.7rem;
-}
-.pub-language-tags span {
-  display: inline-flex;
-  gap: 0.4em;
-  align-items: center;
-  border-radius: 0.55rem;
-  background: #eaf1f8;
-  border: 1px solid var(--pub-line);
-}
-.pub-amir-details {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(14rem, 1fr);
-  gap: 1.1rem;
-}
-.pub-amir-details article {
-  padding: clamp(1rem, 1.75vw, 1.6rem);
-  margin-bottom: 0.85rem;
-}
-.pub-amir-details p {
-  margin-top: 0.55em;
-}
-.pub-amir-facts {
-  margin-top: 1rem;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-.pub-amir-facts > div {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem;
-  border: 1px solid var(--pub-line);
-  border-radius: 0.55rem;
-}
-.pub-amir-facts > div p {
-  margin: 0;
-}
-.pub-amir-details .pub-gallery-grid {
-  margin-top: 1rem;
-}
-.pub-amir-details blockquote {
-  margin: 0 0 1rem;
-  padding: 1.35rem;
-  font-size: clamp(1.35rem, 2.5vw, 2.2rem);
-  font-weight: 820;
-  text-align: center;
-  font-style: italic;
-}
-.pub-amir-details aside .pub-btn {
-  width: 100%;
-  margin-top: 0.65rem;
-}
-.pub-amir-details small,
-.pub-aina small {
-  color: var(--pub-muted);
-  display: block;
-  margin-top: 0.5em;
-}
-.pub-aina-lead {
-  position: relative;
-  isolation: isolate;
-  min-height: clamp(19rem, 41vw, 34rem);
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-.pub-aina-lead > img {
-  width: 68%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  z-index: -1;
-  mask-image: linear-gradient(100deg, transparent 0%, #000 13%);
-}
-.pub-aina-lead > div {
-  max-width: 46%;
-  padding: clamp(0.9rem, 2.9vw, 2.8rem);
-}
-.pub-aina-lead h1 {
-  font-size: clamp(2.2rem, 5.4vw, 5rem);
-}
-.pub-aina-lead p {
-  margin-top: 0.4em;
-}
-.pub-aina-lead .pub-btn {
-  margin-top: 0.7em;
-}
-.pub-aina-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  padding: 0.8rem 0;
-  border-bottom: 1px solid var(--pub-line);
-}
-.pub-aina-nav a {
-  font-weight: 730;
-  text-underline-offset: 0.25em;
-}
-.pub-aina .pub-about-cards .pub-info-card {
-  flex-direction: row;
-  text-align: left;
-}
-.pub-aina .pub-about-intro {
-  grid-template-columns: 1.2fr 1fr;
-}
-.pub-aina .pub-gallery figure {
-  position: relative;
-}
-.pub-aina .pub-gallery figcaption {
-  position: absolute;
-  left: 0.65rem;
-  bottom: 0.65rem;
-  border-radius: 0.4rem;
-  background: #fffdf8de;
-  padding: 0.22em 0.5em;
-  font-size: 0.81em;
-}
-.pub-aina-back {
-  margin-top: 1rem;
-}
-.pub-aina .pub-strip > div:last-child {
-  margin-left: auto;
 }
 .pub-empty .pub-btn + .pub-btn {
   margin-left: 0.6rem;
 }
-@media (max-width: 760px) {
-  .pub-amir-details {
-    grid-template-columns: 1fr;
-  }
-  .pub-amir-lead {
-    grid-template-columns: minmax(5rem, 0.6fr) minmax(0, 1fr);
-    gap: 0.75rem;
-  }
-  .pub-amir-lead h2 {
-    font-size: clamp(1.6rem, 6vw, 2.25rem);
-  }
-  .pub-amir-lead .pub-pill {
-    font-size: 0.78em;
-  }
-  .pub-amir-details aside .pub-btn {
-    max-width: 23rem;
-  }
-  .pub-aina-lead {
-    flex-direction: column;
-    align-items: stretch;
-    min-height: 0;
-  }
-  .pub-aina-lead > div {
-    max-width: none;
-    order: -1;
-  }
-  .pub-aina-lead > img {
-    width: 100%;
-    max-height: 14rem;
-    position: static;
-    mask-image: none;
-  }
-  .pub-aina .pub-about-intro {
-    grid-template-columns: 1fr;
-  }
-  .pub-aina .pub-strip > div:last-child {
-    margin-left: 0;
-  }
-}
 @media (max-width: 460px) {
-  .pub-amir-facts {
-    grid-template-columns: 1fr;
-  }
   .pub-empty .pub-btn + .pub-btn {
     margin-left: 0;
   }
@@ -1784,13 +1596,14 @@ body:has(.pub-site) {
   font-size: clamp(1.02rem, 0.63rem + 1.1vw, 1.8rem);
   margin-top: 0.38em;
 }
-.pub-banner:not(.pub-join-banner) .pub-banner-copy {
+.pub-banner .pub-banner-copy {
   padding-block: clamp(1rem, 1.75vw, 1.55rem);
 }
 .pub-banner h1 {
   line-height: 1.02;
 }
-.pub-banner-art {
+.pub-banner-blend {
+  border-radius: inherit;
   mask-image:
     linear-gradient(to right, transparent, #000 20%),
     linear-gradient(to bottom, transparent, #000 9%);
@@ -1803,12 +1616,8 @@ body:has(.pub-site) {
   margin-top: 0;
 }
 @media (min-width: 1021px) {
-  .pub-banner:not(.pub-join-banner) {
+  .pub-banner {
     min-height: clamp(13.5rem, 21vw, 20rem);
-  }
-  .pub-banner-art {
-    width: 52%;
-    object-position: right bottom;
   }
   .pub-access-hero h1 {
     text-wrap: nowrap;
@@ -1819,7 +1628,7 @@ body:has(.pub-site) {
   .pub-login-preview {
     display: none;
   }
-  .pub-banner-art {
+  .pub-banner-blend {
     mask-image:
       linear-gradient(to right, transparent, #000 18%),
       linear-gradient(to bottom, transparent, #000 14%);
@@ -1897,11 +1706,7 @@ body:has(.pub-site) {
     margin-top: 1rem;
   }
 }
-
-.pub-captioned {
-  margin: 0;
-}
-.pub-captioned figcaption {
-  padding: 0.4em 0;
-  font-size: 1rem;
+@media (max-width: 460px) {
+  .pub-site:has(.pub-access) .pub-brand { flex: 0 0 8rem; }
+  .pub-site:has(.pub-access) .pub-back-home { max-width: 9rem; white-space: normal; font-size: .8rem; line-height: 1.2; }
 }
