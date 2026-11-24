@@ -3,6 +3,20 @@ const locationData = JSON.parse(
 );
 const locationForms = [...document.querySelectorAll("[data-location]")];
 
+const profileSectionLinks = [...document.querySelectorAll(".pub-aina-nav a")];
+if (profileSectionLinks.length) {
+  const updateProfileSection = () => {
+    const current =
+      profileSectionLinks.find((link) => link.hash === window.location.hash) ||
+      profileSectionLinks[0];
+    for (const link of profileSectionLinks)
+      link.removeAttribute("aria-current");
+    current.setAttribute("aria-current", "location");
+  };
+  window.addEventListener("hashchange", updateProfileSection);
+  updateProfileSection();
+}
+
 function syncLocations(form, changed = "") {
   const state = form.elements.state;
   const district = form.elements.district;
@@ -183,6 +197,39 @@ function formValues(form) {
     result.rememberMe = form.elements.rememberMe.checked;
   return result;
 }
+function refreshClassSummary(picker) {
+  const selected = [...picker.querySelectorAll("input:checked")];
+  const summary = picker.querySelector("[data-class-summary]");
+  summary.replaceChildren(
+    ...selected.map((input) => {
+      const chip = document.createElement("span");
+      chip.textContent = input.value;
+      return chip;
+    }),
+  );
+  if (!selected.length) summary.textContent = "Pilih kelas";
+  picker
+    .querySelector("summary")
+    .setAttribute(
+      "aria-label",
+      selected.length
+        ? "Kelas dipilih: " + selected.map((input) => input.value).join(", ")
+        : "Pilih kelas",
+    );
+}
+for (const picker of document.querySelectorAll(".pub-class-picker")) {
+  picker.addEventListener("change", () => refreshClassSummary(picker));
+  picker.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && picker.open) {
+      picker.open = false;
+      picker.querySelector("summary").focus();
+    }
+  });
+  picker.closest("form").addEventListener("reset", () => {
+    picker.open = false;
+    queueMicrotask(() => refreshClassSummary(picker));
+  });
+}
 const draftKey = (form) => form.dataset.draft;
 async function saveDraft(form) {
   const files = Object.fromEntries(
@@ -220,7 +267,12 @@ async function restoreDraft(form) {
     )
       input.value = value;
   }
-  if (draft.values.promotionTitle) form.querySelector("details").open = true;
+  refreshClassSummary(form.querySelector(".pub-class-picker"));
+  if (
+    draft.values.promotionTitle &&
+    form.querySelector(".pub-promotion details")
+  )
+    form.querySelector(".pub-promotion details").open = true;
   showStatus(form, "Draf pada peranti ini dimuatkan.");
 }
 for (const form of document.querySelectorAll("[data-draft]")) {
@@ -279,8 +331,12 @@ for (const form of document.querySelectorAll("[data-api]")) {
     button.disabled = true;
     const values = formValues(form);
     try {
-      if (form.dataset.draft && !values.spim.length)
+      if (form.dataset.draft && !values.spim.length) {
+        const picker = form.querySelector(".pub-class-picker");
+        picker.open = true;
+        picker.querySelector("input").focus();
         throw new Error("Pilih sekurang-kurangnya satu Kelas SPIM.");
+      }
       if (form.dataset.guest === "true") {
         await saveDraft(form);
         const params = new URLSearchParams({

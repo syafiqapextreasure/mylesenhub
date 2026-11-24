@@ -1,0 +1,287 @@
+/* Support and registration page refinements, scoped to their own sections. */
+.pub-about-intro {
+  align-items: center;
+}
+.pub-shell:has(.pub-about-steps) .pub-about-intro p {
+  font-size: 1.26rem;
+  max-width: 34ch;
+}
+.pub-shell:has(.pub-about-steps) .pub-about-cards p {
+  font-size: 1.1rem;
+  max-width: 21ch;
+  margin-inline: auto;
+}
+.pub-contact-quote > .pub-round {
+  border-radius: 0.5em;
+}
+.pub-contact-quote > div {
+  padding-inline-start: 1rem;
+  border-inline-start: 1px solid #aec4d5;
+}
+.pub-classes small {
+  font-size: 0.9rem;
+}
+.pub-input-unit {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #c7d2e2;
+  border-radius: 0.6rem;
+  background: #fff;
+  overflow: clip;
+}
+.pub-site .pub-input-unit input {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  flex: 1;
+}
+.pub-input-unit > span {
+  display: grid;
+  place-items: center;
+  padding-inline: 0.65rem;
+  background: #edf2f7;
+  border-inline-start: 1px solid #c7d2e2;
+}
+.pub-input-unit:focus-within {
+  outline: 3px solid #254aff;
+  outline-offset: 2px;
+}
+@media (min-width: 1021px) {
+  .pub-join-institute h3 {
+    font-size: 1.72rem;
+  }
+  .pub-join-institute .pub-round {
+    width: 4.7rem;
+    height: 4.7rem;
+  }
+  .pub-join-institute .pub-round svg {
+    width: 2.8rem;
+    height: 2.8rem;
+  }
+  .pub-join-institute .pub-btn {
+    font-size: 1.14rem;
+  }
+  .pub-register-form .pub-field,
+  .pub-contact-form .pub-field,
+  .pub-classes legend {
+    font-size: 1.04rem;
+  }
+  .pub-register-form .pub-form-section h3 {
+    font-size: 1.56rem;
+  }
+  .pub-contact-form .pub-field:has(textarea) textarea {
+    flex: 1;
+  }
+  .pub-contact aside .pub-info-card .pub-round {
+    width: 2.3rem;
+    height: 2.3rem;
+  }
+  .pub-contact aside .pub-info-card .pub-round svg {
+    width: 1.95rem;
+    height: 1.95rem;
+  }
+  .pub-join-banner {
+    min-height: clamp(19rem, 35.6vw, 31rem);
+  }
+  .pub-join-banner .pub-banner-copy {
+    max-width: 49%;
+  }
+  .pub-join-banner .pub-banner-copy strong {
+    max-width: 24ch;
+    font-size: clamp(1.6rem, 2.5vw, 2.4rem);
+  }
+  .pub-join-banner .pub-banner-art {
+    width: 54%;
+    height: 100%;
+  }
+  .pub-join-institute {
+    min-height: clamp(6rem, 13vw, 10rem);
+  }
+  .pub-join-institute > div {
+    border-inline-start: 1px solid #abbfd1;
+    padding-inline-start: 1.15rem;
+  }
+  .pub-registration-tabs .pub-btn {
+    min-height: clamp(3.5rem, 7vw, 5rem);
+    font-size: 1.19rem;
+  }
+  .pub-registration-tabs svg {
+    width: 1.9em;
+    height: 1.9em;
+  }
+  .pub-register {
+    grid-template-columns: minmax(0, 0.49fr) minmax(0, 1fr);
+  }
+  .pub-register-form .pub-fields {
+    row-gap: 1.25rem;
+  }
+  .pub-join-aside ol {
+    row-gap: 1.05rem;
+  }
+  .pub-join-aside ol li:not(:last-child)::after {
+    height: 1.05rem;
+  }
+  .pub-contact {
+    align-items: stretch;
+  }
+  .pub-contact-form {
+    display: flex;
+    flex-direction: column;
+  }
+  .pub-contact-form form {
+    flex: 1;
+    align-content: stretch;
+    grid-template-rows: auto auto minmax(12rem, 1fr);
+    row-gap: 1.15rem;
+  }
+  .pub-contact aside .pub-info-card {
+    padding-block: 1.6rem;
+    font-size: 1.12rem;
+  }
+  .pub-contact aside .pub-info-card .pub-round {
+    background: none;
+  }
+  .pub-about-steps li {
+    padding-block: 1.1rem;
+  }
+  .pub-shell:has(.pub-about-steps) .pub-about-cards .pub-info-card {
+    min-height: clamp(12rem, 20vw, 17rem);
+  }
+}
+.pub-about-intro img {
+  aspect-ratio: 1.42;
+  object-fit: cover;
+}
+.pub-about-cards .pub-info-card {
+  min-height: 10rem;
+  justify-content: center;
+}
+.pub-about-cards .pub-round {
+  width: 3.3rem;
+  height: 3.3rem;
+}
+.pub-about-steps li {
+  min-height: 6.5rem;
+  justify-content: center;
+}
+.pub-contact-form .pub-fields textarea {
+  min-height: 10rem;
+}
+.pub-contact aside .pub-info-card {
+  align-items: flex-start;
+}
+.pub-contact-quote {
+  background: linear-gradient(125deg, #e8f5ff, #d4eafa);
+}
+.pub-join-institute .pub-round {
+  flex: none;
+}
+.pub-register-form .pub-upload {
+  min-height: 6.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.pub-register-form .pub-upload-icon {
+  display: grid;
+  place-items: center;
+  color: #7082a1;
+}
+.pub-register-form .pub-upload-icon svg {
+  width: 2.3rem;
+  height: 2.3rem;
+}
+.pub-register-form .pub-upload [data-preview]:not(:empty) + .pub-upload-icon {
+  display: none;
+}
+.pub-register-form .pub-upload img {
+  width: 5rem;
+  height: 4rem;
+  margin: 0;
+}
+.pub-register-form .pub-promotion summary {
+  border: 1px solid #e30019;
+  border-radius: 0.6rem;
+  color: #d60016;
+  padding: 0.45rem 0.8rem;
+  margin: 0.8rem auto 0;
+  width: max-content;
+  max-width: 100%;
+  text-align: center;
+}
+.pub-register-form .pub-promotion details[open] .pub-fields {
+  margin-top: 1rem;
+}
+.pub-register-form .pub-classes label {
+  min-height: 2rem;
+}
+.pub-access-form .pub-field input {
+  min-height: 2.7rem;
+}
+.pub-access-form > .pub-btn {
+  min-height: 3rem;
+}
+.pub-site:has(.pub-access) .pub-footer nav a[href="/login"] {
+  display: none;
+}
+.pub-site:has(.pub-access) .pub-footer nav a[href="/login"] + a {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}
+@media (max-width: 760px) {
+  .pub-about-intro img {
+    aspect-ratio: 1.35;
+  }
+  .pub-contact-form .pub-fields textarea {
+    min-height: 8rem;
+  }
+  .pub-register-form .pub-upload {
+    min-height: 6rem;
+  }
+}
+@media (min-width: 761px) {
+  .pub-shell:has(.pub-registration-tabs) .pub-banner-copy {
+    max-width: 52%;
+  }
+  .pub-shell:has(.pub-registration-tabs) .pub-banner-copy strong {
+    max-width: 22ch;
+  }
+}
+.pub-register-form .pub-promotion summary {
+  list-style: none;
+}
+.pub-register-form .pub-promotion summary::-webkit-details-marker {
+  display: none;
+}
+.pub-register-form .pub-promotion summary::before {
+  content: "+";
+  font-size: 1.2em;
+  margin-inline-end: 0.4em;
+}
+.pub-register-form .pub-promotion details[open] summary::before {
+  content: "−";
+}
+@media (max-width: 460px) {
+  .pub-registration-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pub-registration-tabs .pub-btn {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.6rem 0.3rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+@media (max-width: 760px) {
+  .pub-register {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pub-register > *,
+  .pub-register-form form,
+  .pub-register-form .pub-fields {
+    min-width: 0;
+  }
+}

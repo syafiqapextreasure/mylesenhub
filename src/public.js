@@ -30,6 +30,7 @@ const esc = (value = "") =>
 const art = (name) => "/media/" + name + ".webp";
 const responsiveWidths = {
   "home-hero": 2014,
+  "amir-hero": 1774,
   "home-johor": 1748,
   "home-melaka": 1748,
   "search-hero": 1900,
@@ -38,9 +39,7 @@ const responsiveWidths = {
 const photo = (url, alt, className = "", eager = false) => {
   const key = String(url).match(/^\/media\/([a-z-]+)\.webp$/)?.[1];
   const sizes =
-    key === "home-hero"
-      ? "(max-width: 1550px) 100vw, 1550px"
-      : "(max-width: 760px) 100vw, 55vw";
+    key === "home-hero" ? "100vw" : "(max-width: 760px) 100vw, 55vw";
   const variants =
     key in responsiveWidths
       ? ' srcset="/media/' +
@@ -79,7 +78,7 @@ const iconPaths = {
     '<circle cx="12" cy="7" r="3"/><path d="M6 21v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4zm-4-3v-2a4 4 0 0 1 3-4m17 6v-2a4 4 0 0 0-3-4M5 6a2.5 2.5 0 0 0 0 5m14-5a2.5 2.5 0 0 1 0 5"/>',
   person:
     '<circle cx="12" cy="7" r="4"/><path d="M4 22v-3a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v3z"/>',
-  chat: '<path d="M22 11a9.5 9.5 0 0 1-10 9 13 13 0 0 1-4-.7L3 21l1.5-4A8 8 0 0 1 2 11a10 .9 0 0 1 20 0Z"/><path d="M8 11h.2m3.7 0h.2m3.7 0h.2"/>',
+  chat: '<path d="M22 11a9.5 9.5 0 0 1-10 9 13 13 0 0 1-4-.7L3 21l1.5-4A8 8 0 0 1 2 11a10 9 0 0 1 20 0Z"/><path d="M8 11h.2m3.7 0h.2m3.7 0h.2"/>',
   lens: '<circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 6 6"/>',
   calendar:
     '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4m-8 7h1m3 0h1m3 0h1m-9 3h1m3 0h1"/>',
@@ -316,7 +315,7 @@ const contactLink = (item, className = "") => {
   );
 };
 const mainHome = () =>
-  '<section class="pub-home-hero">' +
+  '<div class="pub-home-page"><section class="pub-home-hero">' +
   photo(
     art("home-hero"),
     "Bangunan Perdana Putra di Putrajaya",
@@ -358,11 +357,11 @@ const mainHome = () =>
     .join("") +
   "</div>" +
   steps() +
-  '</section><section class="pub-strip"><div><h2>Anda seorang instructor?</h2><p>Sertai komuniti MyLesenHub dan bantu lebih ramai bakal pemandu menemui anda.</p></div><a href="' +
+  '</section><section class="pub-strip pub-home-join"><div><h2>Anda seorang instructor?</h2><p>Sertai komuniti MyLesenHub dan bantu lebih ramai bakal pemandu menemui anda.</p></div><a href="' +
   join +
   '">Sertai Komuniti ' +
   icon("arrow") +
-  "</a></section></div>";
+  "</a></section></div></div>";
 const mainSearch = (data, url) => {
   const params = url.searchParams;
   const sampleOnly =
@@ -406,7 +405,12 @@ const mainSearch = (data, url) => {
         esc(item.name) +
         '">' +
         (item.photo
-          ? photo(item.photo, "")
+          ? photo(
+              item.demo && item.slug === "cikgu-daniel"
+                ? art("daniel-directory")
+                : item.photo,
+              "",
+            )
           : '<span class="pub-placeholder">' + icon("person") + "</span>") +
         "</a><div><h3>" +
         esc(item.name) +
@@ -426,7 +430,7 @@ const mainSearch = (data, url) => {
     )
     .join("");
   return (
-    '<div class="pub-shell">' +
+    '<div class="pub-shell pub-directory-page">' +
     banner(
       "search",
       "Find the Best<br> Among the Great",
@@ -531,13 +535,16 @@ const profileAmir = (item, location, backHref, images) => {
     ["chat", "Bahasa", item.languages],
   ];
   return (
-    '<div class="pub-shell">' +
-    banner("profile", "Profil Instructor", [
-      ["Cari Instructor", backHref],
-      [item.name],
-    ]) +
+    '<div class="pub-shell pub-amir">' +
+    banner(
+      "amir",
+      "Profil Instructor",
+      [["Cari Instructor", backHref], [item.name]],
+      "",
+      "pub-profile-banner",
+    ) +
     '<section class="pub-panel pub-amir-lead pub-section">' +
-    photo(item.photo, item.name, "", true) +
+    photo(art("amir-profile"), item.name, "", true) +
     "<div>" +
     pill(demoLabel) +
     "<h2>" +
@@ -556,7 +563,7 @@ const profileAmir = (item, location, backHref, images) => {
     '<section class="pub-amir-details pub-section"><div><article class="pub-panel"><h2>Tentang ' +
     esc(item.name) +
     "</h2><p>" +
-    esc(item.bio) +
+    "Kenali asas pemanduan secara berperingkat, daripada kawalan kereta hingga keyakinan di jalan raya." +
     '</p><hr><h3>Maklumat instructor</h3><div class="pub-amir-facts">' +
     details
       .map(
@@ -582,12 +589,12 @@ const profileAmir = (item, location, backHref, images) => {
       .join("") +
     '</div></article></div><aside><article class="pub-panel"><h2>Mula berkenalan</h2><p>Tanya tentang pembelajaran dan lokasi latihan.</p>' +
     contactLink(item) +
-    '</article><blockquote class="pub-blue">“ ' +
+    '</article><blockquote class="pub-blue"><span aria-hidden="true">“</span>' +
     slogan +
     "</blockquote>" +
     button(icon("back") + " Kembali ke carian", backHref, "pub-neutral") +
     "</aside></section>" +
-    '<section class="pub-strip"><span class="pub-round">' +
+    '<section class="pub-strip pub-amir-location"><span class="pub-round">' +
     icon("pin") +
     "</span><div><h3>" +
     esc(item.institute) +
@@ -612,19 +619,20 @@ const profileAina = (item, location, backHref, images) => {
     photo(art("aina-hero"), "", "", true) +
     "<div>" +
     pill(demoLabel) +
-    "<p>Profil Instructor</p><h1>" +
+    '<p class="pub-aina-kicker">Profil Instructor</p><h1>' +
     esc(item.name) +
-    '</h1><p class="pub-with-icon">' +
+    '</h1><p class="pub-with-icon pub-aina-location">' +
     icon("pin") +
+    "<span>" +
     esc(item.institute) +
-    "</p><p>" +
+    "<br>" +
     location +
-    "</p><p>" +
+    '</span></p><p class="pub-aina-slogan">' +
     slogan +
-    "</p>" +
+    '</p><i aria-hidden="true"></i>' +
     contactLink(item) +
     "</div></section>" +
-    '<nav class="pub-aina-nav" aria-label="Bahagian profil"><a href="#pengenalan">Pengenalan</a><a href="#maklumat">Maklumat</a><a href="#galeri">Galeri</a></nav>' +
+    '<nav class="pub-aina-nav" aria-label="Bahagian profil"><a href="#pengenalan" aria-current="location">Pengenalan</a><a href="#maklumat">Maklumat</a><a href="#galeri">Galeri</a></nav>' +
     '<section id="maklumat" class="pub-about-cards">' +
     details
       .map(([name, title, value]) => card(name, title, esc(value)))
@@ -633,9 +641,15 @@ const profileAina = (item, location, backHref, images) => {
     '<section id="pengenalan" class="pub-about-intro pub-section"><div><h2>Kenali ' +
     esc(item.name) +
     "</h2><p>" +
-    esc(item.bio) +
+    "Pembelajaran yang tenang dan berperingkat membantu pelajar memahami asas pemanduan dengan lebih yakin." +
     "</p></div>" +
-    card("chat", "Bahasa pengajaran", esc(item.languages), "", "pub-blue") +
+    card(
+      "chat",
+      "Bahasa pengajaran",
+      "Bahasa Melayu • Bahasa Inggeris",
+      "",
+      "pub-blue",
+    ) +
     "</section>" +
     '<section id="galeri" class="pub-gallery pub-section"><h2>Suasana pembelajaran</h2><div class="pub-gallery-grid">' +
     images
@@ -687,11 +701,14 @@ const profile = (item) => {
   if (item.demo && item.slug === "cikgu-aina")
     return profileAina(item, location, backHref, images);
   return (
-    '<div class="pub-shell">' +
-    banner("profile", "Profil Instructor", [
-      ["Cari Instructor", backHref],
-      [item.name],
-    ]) +
+    '<div class="pub-shell pub-profile-page">' +
+    banner(
+      "profile",
+      "Profil Instructor",
+      [["Cari Instructor", backHref], [item.name]],
+      "",
+      "pub-profile-banner",
+    ) +
     '<div class="pub-profile pub-section"><aside><div class="pub-panel pub-profile-side">' +
     (item.photo
       ? photo(item.photo, item.name, "pub-profile-photo", true)
@@ -724,7 +741,7 @@ const profile = (item) => {
           icon(name) +
           " <b>" +
           label +
-          "</b></dt><dd>" +
+          '</b><span aria-hidden="true">:</span></dt><dd>' +
           (Array.isArray(value)
             ? value.map((entry) => pill(esc(entry))).join(" ")
             : esc(value)) +
@@ -860,7 +877,7 @@ const checkbox = (text) =>
 const classOptions = (label = "Kelas SPIM") =>
   '<fieldset class="pub-classes"><legend>' +
   label +
-  "</legend><small>Boleh pilih lebih daripada satu</small><div>" +
+  '</legend><small>Boleh pilih lebih daripada satu</small><details class="pub-class-picker"><summary><span data-class-summary>Pilih kelas</span></summary><div>' +
   classes
     .map(
       (entry) =>
@@ -871,11 +888,13 @@ const classOptions = (label = "Kelas SPIM") =>
         "</label>",
     )
     .join("") +
-  "</div></fieldset>";
+  "</div></details></fieldset>";
 const uploads = (name, label, multiple = false) =>
   '<div class="pub-field pub-upload-field"><span>' +
   label +
-  '</span><div class="pub-upload" data-upload><div data-preview></div><label class="pub-btn pub-outline">' +
+  '</span><div class="pub-upload" data-upload><div data-preview></div><span class="pub-upload-icon" aria-hidden="true">' +
+  icon(name === "logo" ? "temple" : "image") +
+  '</span><label class="pub-btn pub-outline">' +
   (multiple
     ? "Tambah gambar"
     : name === "logo"
@@ -1070,12 +1089,14 @@ const register = (data, isInstitute) => {
           classOptions() +
             field(
               "Experience",
-              input(
-                "experience",
-                "Tahun pengalaman",
-                "number",
-                'required min="0" max="80" step="1"',
-              ),
+              '<span class="pub-input-unit">' +
+                input(
+                  "experience",
+                  "Contoh: 5",
+                  "number",
+                  'required min="0" max="80" step="1" aria-describedby="experience-unit"',
+                ) +
+                '<span id="experience-unit">tahun</span></span>',
             ) +
             field(
               "Other",
@@ -1392,6 +1413,13 @@ const programDirectory = (data) => {
         "</div></section>"
     : "";
 };
+export function publicPageStyles(path) {
+  const sheet =
+    path === "/" || path === search || path.startsWith("/instructor/")
+      ? "public-profiles"
+      : "public-support";
+  return '<link rel="stylesheet" href="/' + sheet + '.css">';
+}
 export function renderPublic(path, url, data = {}) {
   const contentData = {
     instructors: [],

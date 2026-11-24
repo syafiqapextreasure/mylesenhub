@@ -1,5 +1,5 @@
 import { neon } from "@neondatabase/serverless";
-import { renderPublic } from "./public.js";
+import { publicPageStyles, renderPublic } from "./public.js";
 import { renderDashboard } from "./dashboard.js";
 import { getUser } from "./auth.js";
 import { catalog, dashboardData } from "./store.js";
@@ -80,7 +80,9 @@ function document(body, options) {
     e(origin) +
     '/media/social-share.webp"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/media/icon-car.webp"><link rel="preload" href="/font/dm-sans.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/base.css"><link rel="stylesheet" href="/' +
     css +
-    '.css"><script src="/' +
+    '.css">' +
+    (dash ? "" : publicPageStyles(path)) +
+    '<script src="/' +
     css +
     '.js" defer></script>' +
     (jsonld

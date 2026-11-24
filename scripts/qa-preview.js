@@ -4,6 +4,7 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { demoInstructors, demoInstitutes } from "../src/demo.js";
 const root = path.resolve("public");
+const port = Number(process.env.MLH_VISUAL_PORT || 4173);
 const mime = {
   ".webp": "image/webp",
   ".svg": "image/svg+xml",
@@ -150,7 +151,9 @@ http
       res.end(
         '<!doctype html><html lang="ms"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="/base.css"><link rel="stylesheet" href="/' +
           skin +
-          '.css"><script defer src="/' +
+          '.css">' +
+          (dash ? "" : mod.publicPageStyles(p)) +
+          '<script defer src="/' +
           skin +
           '.js"></script></head><body>' +
           body +
@@ -161,6 +164,6 @@ http
       res.end("Preview not ready: " + e.message);
     }
   })
-  .listen(4173, "127.0.0.1", () =>
-    console.log("Visual review fixtures at http://127.0.0.1:4173"),
+  .listen(port, "127.0.0.1", () =>
+    console.log("Visual review fixtures at http://127.0.0.1:" + port),
   );

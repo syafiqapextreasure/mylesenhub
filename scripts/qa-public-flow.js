@@ -34,6 +34,15 @@ async function test(name, mode, run, viewport = { width: 1440, height: 900 }) {
     await page.close();
   }
 }
+async function chooseClass(page, value) {
+  const picker = page.locator(".pub-class-picker");
+  await picker.locator("summary").click();
+  const choice = picker.locator('[name="spim"][value="' + value + '"]');
+  await choice.check();
+  await expect(picker.locator("summary")).toContainText(value);
+  await choice.press("Escape");
+  await expect(picker.locator("summary")).toBeFocused();
+}
 async function chooseLocation(page) {
   await page.locator("[name=state]").selectOption("Johor");
   await page.locator("[name=district]").selectOption("Johor Bahru");
@@ -155,7 +164,8 @@ try {
         experience: "5",
         bio: "Pengenalan untuk ujian fungsi.",
       });
-      await page.locator("[name=spim][value=D]").check();
+      await chooseClass(page, "D");
+      await chooseClass(page, "DA");
       await page
         .locator("[name=photo]")
         .setInputFiles("public/media/daniel.webp");
@@ -167,6 +177,10 @@ try {
         "Cikgu Ujian",
       );
       await expect(page.locator("[name=district]")).toHaveValue("Johor Bahru");
+      await expect(page.locator("[data-class-summary] > span")).toHaveText([
+        "D",
+        "DA",
+      ]);
       await expect(page.locator("[data-preview] img")).toHaveCount(1);
       await page.locator("[name=consent]").check();
       await page.getByRole("button", { name: "Hantar untuk semakan" }).click();
@@ -224,7 +238,7 @@ try {
         phone: "0120000000",
         bio: "Pengenalan untuk ujian fungsi.",
       });
-      await page.locator("[name=spim][value=DA]").check();
+      await chooseClass(page, "DA");
       await page.getByText("Tambah promosi / program", { exact: true }).click();
       await fields(page, {
         promotionTitle: "Taklimat keselamatan",
@@ -309,7 +323,7 @@ try {
         experience: "5",
         bio: "Pengenalan untuk ujian fungsi.",
       });
-      await page.locator("[name=spim][value=D]").check();
+      await chooseClass(page, "D");
       await page
         .locator("[name=photo]")
         .setInputFiles("public/media/daniel.webp");

@@ -1,0 +1,304 @@
+.pub-home-page .pub-steps {
+  border-bottom: 1px solid #e7edf3;
+  padding-block: 1.45rem;
+}
+
+.pub-home-page .pub-home-join {
+  margin-top: 1.15rem;
+}
+
+.pub-home-join p {
+  max-width: 56ch;
+}
+
+.pub-home-page .pub-region img {
+  object-position: center;
+}
+
+.pub-home-page .pub-region::before {
+  background: linear-gradient(0deg, #030a177d, transparent 46%);
+}
+
+.pub-profile-banner .pub-breadcrumb {
+  margin-bottom: 1.35rem;
+}
+
+.pub-profile-page .pub-profile-details dt > span {
+  margin-inline-start: auto;
+}
+
+.pub-profile-page .pub-profile-details dd {
+  padding-inline-start: 0.45rem;
+}
+
+.pub-profile-page .pub-profile-details dl div {
+  grid-template-columns: minmax(9rem, 0.66fr) minmax(0, 1fr);
+}
+
+.pub-profile-page .pub-profile-details dd .pub-pill {
+  min-width: 2rem;
+  padding: 0.23em 0.55em;
+  text-align: center;
+}
+
+.pub-profile-page .pub-profile-side .pub-reset,
+.pub-amir-details aside > .pub-btn {
+  min-height: 44px;
+}
+
+.pub-profile-page .pub-strip > .pub-round,
+.pub-amir-location > .pub-round {
+  border-radius: 0.65rem;
+  background: #ffffffd9;
+}
+
+.pub-amir .pub-banner-art {
+  mask-image: none;
+  object-position: right bottom;
+  padding-inline-end: 1.1rem;
+}
+.pub-amir .pub-amir-lead {
+  grid-template-columns: minmax(0, 0.48fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+.pub-amir .pub-amir-lead h3 {
+  font-size: 1.27rem;
+}
+
+.pub-amir-details article > p {
+  max-width: 49ch;
+}
+
+.pub-amir-details .pub-amir-facts {
+  row-gap: 0.55rem;
+}
+
+.pub-amir-details .pub-gallery-grid figure img {
+  aspect-ratio: 1.45;
+}
+
+.pub-amir-details figcaption {
+  color: var(--pub-muted);
+  font-size: 0.76em;
+  margin-top: 0.3em;
+}
+
+.pub-amir-details aside > .pub-btn {
+  border-color: var(--pub-ink);
+}
+
+.pub-amir-details blockquote {
+  padding: 1.05rem 1.35rem;
+  line-height: 1.15;
+}
+
+.pub-amir-details blockquote > span {
+  display: block;
+  color: #326592;
+  font:
+    800 2.9rem/0.7 Georgia,
+    serif;
+  text-align: left;
+}
+
+.pub-aina .pub-breadcrumb {
+  padding-inline: 1rem;
+}
+
+.pub-aina-lead > div {
+  padding-block: 1.05rem;
+}
+
+.pub-aina-lead .pub-aina-kicker {
+  font-weight: 680;
+  margin-top: 0.7rem;
+}
+
+.pub-aina-lead .pub-aina-location {
+  align-items: flex-start;
+  font-weight: 600;
+}
+
+.pub-aina-lead .pub-aina-location svg {
+  margin-top: 0.15em;
+}
+
+.pub-aina-lead .pub-aina-slogan {
+  margin-top: 0.7rem;
+}
+
+.pub-aina-lead i {
+  display: block;
+  width: 3rem;
+  height: 0.22rem;
+  margin-top: 0.45rem;
+  border-radius: 3rem;
+  background: var(--pub-red);
+}
+
+.pub-aina-lead .pub-btn,
+.pub-aina .pub-strip .pub-btn {
+  min-width: 11rem;
+}
+
+.pub-aina-nav {
+  gap: 0;
+  padding: 0.3rem 0 0;
+}
+
+.pub-aina-nav a {
+  position: relative;
+  min-width: 7rem;
+  padding: 0.65rem 0.7rem 1rem;
+  text-align: center;
+  font-weight: 590;
+  text-decoration: none;
+}
+
+.pub-aina-nav a + a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65rem;
+  width: 1px;
+  height: 1.1rem;
+  background: #a9b6ca;
+}
+
+.pub-aina-nav a[aria-current] {
+  font-weight: 770;
+}
+
+.pub-aina-nav a[aria-current]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0.55rem;
+  height: 0.24rem;
+  border-radius: 0.5rem;
+  background: var(--pub-red);
+}
+
+.pub-aina #maklumat {
+  margin-top: 1.2rem;
+}
+
+.pub-aina #pengenalan p {
+  max-width: 49ch;
+}
+
+.pub-aina #pengenalan .pub-info-card {
+  box-shadow: none;
+  border: 0;
+}
+
+.pub-aina .pub-gallery-grid figure img {
+  aspect-ratio: 1.58;
+}
+
+.pub-aina .pub-gallery-grid {
+  gap: 0.75rem;
+  padding: 0;
+}
+
+.pub-aina .pub-strip > div:last-child {
+  justify-self: start;
+}
+
+@media (min-width: 761px) {
+  .pub-home-join > a {
+    padding-left: 2.3rem;
+    border-inline-start: 1px solid #b8c9d8;
+    min-height: 2.55rem;
+  }
+
+  .pub-home-page .pub-explore h2 {
+    margin-inline-start: 0.25rem;
+  }
+
+  .pub-directory-page .pub-search-banner {
+    min-height: 19.65vw;
+  }
+
+  .pub-directory-page .pub-search-banner .pub-banner-copy {
+    padding-block: 0.7rem;
+  }
+
+  .pub-directory-page .pub-search-filter .pub-filter {
+    gap: 0.95rem;
+  }
+
+  .pub-directory-page .pub-search-filter h2 {
+    margin-bottom: 0.96rem;
+  }
+
+  .pub-directory-page .pub-filter-tip {
+    margin-top: 1.5rem;
+    padding: 0.95rem 0.55rem;
+  }
+
+  .pub-directory-page .pub-instructor-card > div {
+    padding: 0.48rem 0.65rem 0.7rem;
+  }
+
+  .pub-directory-page .pub-instructor-card .pub-btn {
+    margin-top: 0.18rem;
+  }
+
+  .pub-profile-page .pub-profile {
+    grid-template-columns: minmax(14rem, 0.46fr) minmax(0, 1fr);
+  }
+
+  .pub-profile-page .pub-profile-details dl div {
+    padding-block: 0.62rem;
+  }
+
+  .pub-profile-page .pub-gallery-grid {
+    gap: 0.52rem;
+  }
+
+  .pub-amir .pub-amir-details {
+    grid-template-columns: minmax(0, 2.1fr) minmax(11rem, 1fr);
+  }
+
+  .pub-amir-location > div {
+    border-inline-start: 1px solid #aec2d4;
+    padding-inline-start: 1.05rem;
+  }
+
+  .pub-aina-lead {
+    min-height: 40vw;
+    max-height: 39rem;
+    align-items: flex-start;
+  }
+
+  .pub-aina-lead > div {
+    padding-inline: 1.5rem;
+    padding-top: 1.2rem;
+  }
+
+  .pub-aina #pengenalan {
+    grid-template-columns: minmax(0, 1.36fr) minmax(0, 1fr);
+  }
+
+  .pub-aina #pengenalan > div {
+    border-inline-end: 1px solid #aebbd0;
+    padding-inline-end: 1rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .pub-amir .pub-amir-lead {
+    grid-template-columns: minmax(5rem, 0.65fr) minmax(0, 1fr);
+  }
+
+  .pub-profile-page .pub-profile-details dl div {
+    grid-template-columns: minmax(7rem, 0.7fr) minmax(0, 1fr);
+  }
+
+  .pub-aina-nav a {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}

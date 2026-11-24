@@ -33,22 +33,22 @@ const approved = {
   login: ["/login", "Dashboard_Designs/00_Login_Bersama_v2.png"],
 };
 const comparisonNotes = {
-  home: "The desktop follows the approved split hero, location search, regional images, and four search steps. The hero reflows vertically on mobile.",
+  home: "Gambar asal Putrajaya serta lencana L dan P digunakan dalam hero. Kedudukan gambar negeri, pemisah empat langkah dan pautan Sertai Komuniti diselaraskan.",
   directory:
-    "The desktop has a persistent filter column and three card columns. Tablet and mobile use two card columns. The preview flag identifies sample profiles.",
-  amir: "The portrait and language tags lead the profile. Two images and the right-hand contact column follow the reference.",
-  aina: "The full-width instructor image, section links, location cards, and side-by-side gallery follow the alternative approved layout.",
+    "Lebar penapis, tinggi hero, jarak kad dan potret Cikgu Daniel diselaraskan. Enam profil contoh dipaparkan untuk membandingkan grid dengan rujukan.",
+  amir: "Potret, pengenalan, bahasa, kapsyen galeri, petikan dan panel lokasi diselaraskan. Hero Amir menggunakan Axia daripada lakarannya sendiri, dengan pelekat L pada bonet.",
+  aina: "Gambar hero, kedudukan teks, garisan merah pautan aktif, panel bahasa dan nisbah foto galeri diselaraskan.",
   daniel:
-    "The portrait sidebar, SPIM information table, and three-picture gallery follow v2. Sample contact controls are unavailable.",
+    "Lebar panel profil, pemisah label dan nilai, cip kelas SPIM serta tiga gambar galeri diselaraskan. Butang hubungan pada profil contoh dilumpuhkan.",
   about:
-    "The article and group photo sit together on desktop, followed by the benefit and step cards.",
+    "Nisbah foto berkumpulan, kedudukan kad manfaat dan jarak empat langkah diselaraskan dengan rujukan.",
   contact:
-    "The help cards and message form sit side by side on desktop. Inputs begin blank and retain their consent control.",
-  join: "The standalone institute registration callout precedes the instructor form. Real registration starts with empty fields. Mobile prioritizes the form after the callout.",
+    "Ketinggian ruang mesej, penjajaran kad bantuan serta ikon mesej dibetulkan. Borang sebenar bermula dengan medan kosong.",
+  join: "Sepanduk, pautan institut, ikon muat naik dan menu lungsur kelas SPIM dengan pilihan berbilang diselaraskan. Borang sebenar bermula kosong dan memaparkan foto selepas pengguna memilih fail.",
   institute:
-    "The separate institute form includes location, representative, uploads, and the optional promotion editor.",
+    "Susun atur maklumat institut, wakil, muat naik dan butang tambah promosi diselaraskan. Medan kosong boleh dilengkapkan oleh pemohon.",
   login:
-    "The two desktop panels are retained. Tablet and mobile keep the welcome copy and role labels above the car photo.",
+    "Dua panel desktop, gambar, tinggi medan dan butang log masuk diselaraskan. Pada telefon, panel disusun menegak.",
 };
 const extras = {
   farah: ["/instructor/cikgu-farah?contoh=1"],
@@ -64,17 +64,20 @@ const extras = {
 };
 const widths = [
   ["desktop", 1440, 900],
+  ["wide", 1920, 1080],
+  ["qhd", 2560, 1440],
   ["tablet", 768, 1024],
   ["mobile", 390, 844],
 ];
 const routes = { ...approved, ...extras };
+const edge = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
 const browser = await chromium.launch({
   headless: true,
   executablePath:
-    "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+    process.env.MLH_BROWSER || (fs.existsSync(edge) ? edge : undefined),
 });
 const results = [];
-const origin = "http://127.0.0.1:4173";
+const origin = process.env.MLH_VISUAL_ORIGIN || "http://127.0.0.1:4173";
 try {
   const captures = Object.entries(routes).flatMap(([key, [path]]) =>
     widths.map(([size, w, h]) => ({ key, path, size, w, h })),
@@ -84,6 +87,7 @@ try {
       captures.slice(i, i + 4).map(async ({ key, path, size, w, h }) => {
         const page = await browser.newPage({
           viewport: { width: w, height: h },
+          reducedMotion: "reduce",
         });
         try {
           const errors = [];
@@ -130,63 +134,84 @@ fs.writeFileSync(
   out + "/visual-results.json",
   JSON.stringify(results, null, 2),
 );
-const html =
-  '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyLesenHub public visual review</title><style>body{font:16px/1.45 system-ui;color:#11183c;background:#edf5fb;margin:2rem}section{margin:2rem 0;padding:1rem;background:#fff;border-radius:1rem}figure{margin:0;min-width:0}img{width:100%;display:block;border:1px solid #d6e2ee;border-radius:.5rem}figcaption{padding:.6rem 0;font-weight:700}.comparison{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}.comparison.extra{grid-template-columns:repeat(3,minmax(0,1fr))}a{color:#165594}@media(max-width:900px){.comparison,.comparison.extra{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){body{margin:.7rem}.comparison,.comparison.extra{grid-template-columns:1fr}}</style></head><body><h1>MyLesenHub public visual review</h1><p>Approved references are paired with captures at 1440 px, 768 px, and 390 px. Open an image for full-size inspection. See the <a href="visual-results.json">visual check results</a> and <a href="functional-results.json">functional check results</a>.</p><nav>' +
-  Object.keys(routes)
-    .map((key) => '<a href="#' + key + '">' + key + "</a>")
-    .join(" · ") +
-  "</nav>" +
-  Object.entries(routes)
-    .map(
-      ([key, [path, reference]]) =>
-        '<section id="' +
-        key +
-        '"><h2>' +
-        key +
-        "</h2><p>" +
-        path +
-        "</p>" +
-        (comparisonNotes[key] ? "<p>" + comparisonNotes[key] + "</p>" : "") +
-        '<div class="comparison ' +
-        (!reference ? "extra" : "") +
-        '">' +
-        (reference ? figure("../../" + reference, "Approved reference") : "") +
-        widths
-          .map(([view, w]) =>
-            figure(key + "-" + view + ".png", view + " · " + w + " px"),
-          )
-          .join("") +
-        "</div></section>",
-    )
-    .join("") +
-  "</body></html>";
-function figure(src, label) {
-  return (
-    "<figure><figcaption>" +
-    label +
-    '</figcaption><a href="' +
-    src +
-    '"><img loading="lazy" src="' +
-    src +
-    '" alt="' +
-    label +
-    '"></a></figure>'
-  );
+const titles = {
+  home: "Laman utama",
+  directory: "Cari Instructor",
+  amir: "Cikgu Amir",
+  aina: "Cikgu Aina",
+  daniel: "Cikgu Daniel",
+  about: "Tentang Kami",
+  contact: "Hubungi",
+  join: "Join Us",
+  institute: "Daftar Institut Memandu",
+  login: "Log masuk",
+  farah: "Cikgu Farah",
+  hafiz: "Cikgu Hafiz",
+  "mei-ling": "Cikgu Mei Ling",
+  "instructor-registration": "Daftar Instructor",
+  signup: "Daftar akaun",
+  forgot: "Lupa kata laluan",
+  reset: "Tetapkan kata laluan",
+  privacy: "Privasi",
+  terms: "Terma",
+  "empty-directory": "Carian tanpa hasil",
+};
+const nav = Object.keys(routes)
+  .map((key) => `<a href="#${key}">${titles[key]}</a>`)
+  .join(" · ");
+function figure(src, label, display = "") {
+  return `<figure ${display}><figcaption>${label}</figcaption><a href="${src}"><img loading="lazy" src="${src}" alt="${label}"></a></figure>`;
 }
+const sections = Object.entries(routes)
+  .map(([key, [, reference]]) => {
+    const original = reference
+      ? figure("../../" + reference, "Reka bentuk diluluskan")
+      : "";
+    const views = widths
+      .map(([view, width]) =>
+        figure(
+          `${key}-${view}.png`,
+          `Paparan laman · ${width} px`,
+          `data-view="${view}" ${view === "desktop" ? "" : "hidden"}`,
+        ),
+      )
+      .join("");
+    return `<section id="${key}"><h2>${titles[key]}</h2><p>${comparisonNotes[key] || "Halaman tambahan mengikut gaya projek. Tiada lakaran asal berasingan."}</p><div class="pair">${original}${views}</div></section>`;
+  })
+  .join("");
+const sizes = widths
+  .map(([view, width]) => `<option value="${view}">${width} px</option>`)
+  .join("");
+const typeFile = out + "/typography.json";
+const measurements = fs.existsSync(typeFile)
+  ? JSON.parse(fs.readFileSync(typeFile, "utf8"))
+  : [];
+const measured = measurements
+  .filter(
+    (row) => row.name === "home" && [1440, 1920, 2560].includes(row.width),
+  )
+  .map(
+    ({ width, sizes }) =>
+      `<tr><th>${width} px</th><td>${sizes.body}</td><td>${sizes.navigation}</td><td>${sizes.label}</td><td>${sizes.input}</td></tr>`,
+  )
+  .join("");
+const typography = measured
+  ? `<details><summary>Ukuran teks desktop</summary><table><caption>Laman utama · saiz dikira oleh pelayar dalam piksel CSS</caption><thead><tr><th>Skrin</th><th>Teks asas</th><th>Navigasi</th><th>Label borang</th><th>Medan</th></tr></thead><tbody>${measured}</tbody></table><a href="typography.json">Semua ukuran mengikut halaman</a></details>`
+  : "";
+const html = `<!doctype html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyLesenHub · Perbandingan halaman awam</title><style>
+*{box-sizing:border-box}html{scroll-padding-top:5rem}body{margin:0 auto;padding:clamp(.8rem,2vw,2.8rem);font:clamp(1rem,.87rem + .35vw,1.42rem)/1.5 system-ui,sans-serif;max-width:170rem;color:#131a3b;background:#f1f6fa}h1,h2{line-height:1.12}h1{margin:.5rem 0}h2{margin:0}p{max-width:80ch}a{color:#174f84}section,details{background:white;border:1px solid #d3dfeb;border-radius:1rem;padding:clamp(.75rem,1.5vw,1.8rem);margin:1rem 0}summary,label{font-weight:700}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;align-items:start}figure{margin:0;min-width:0}img{width:100%;height:auto;display:block;border:1px solid #d6e2ee}figcaption{padding:.5rem 0;font-weight:650}.picker{position:sticky;top:0;background:#e6f0f9;z-index:1;padding:.5rem .75rem;border-block:1px solid #c3d4e2}select{padding:.45rem;font:inherit;color:inherit;border:1px solid #9cabbd;border-radius:.45rem}table{border-collapse:collapse;margin:1rem 0}th,td{text-align:left;border-bottom:1px solid #d4dfeb;padding:.4em .75em}caption{text-align:left}nav{line-height:1.9}@media(max-width:600px){.pair{grid-template-columns:1fr}.picker{font-size:1rem}details{overflow-x:auto}}
+</style></head><body><h1>Perbandingan halaman awam MyLesenHub</h1><p>Bandingkan 10 reka bentuk yang diluluskan dengan paparan laman pada lebar pilihan. Klik gambar untuk melihat saiz penuhnya. Profil dan institusi dalam pratonton menggunakan data contoh.</p>
+<details><summary>Pilih halaman</summary><nav>${nav}</nav></details>${typography}
+<div class="picker"><label for="width">Lebar paparan laman </label><select id="width">${sizes}</select></div>${sections}
+<p><a href="visual-results.json">Keputusan semakan visual</a> · <a href="functional-results.json">Keputusan ujian fungsi</a></p>
+<script>document.getElementById("width").addEventListener("change",event=>{document.querySelectorAll("[data-view]").forEach(el=>{el.hidden=el.dataset.view!==event.target.value})})</script></body></html>`;
 fs.writeFileSync(out + "/index.html", html);
-console.log(
-  JSON.stringify(
-    {
-      checks: results.length,
-      problems: results.filter(
-        (entry) =>
-          entry.status !== 200 ||
-          entry.overflow ||
-          entry.missing.length ||
-          entry.errors.length,
-      ),
-    },
-    null,
-    2,
-  ),
+const problems = results.filter(
+  (entry) =>
+    entry.status !== 200 ||
+    entry.overflow ||
+    entry.missing.length ||
+    entry.errors.length,
 );
+console.log(JSON.stringify({ checks: results.length, problems }, null, 2));
+if (problems.length) process.exitCode = 1;
