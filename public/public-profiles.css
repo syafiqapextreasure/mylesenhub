@@ -114,7 +114,7 @@
   min-height: 0;
   margin: clamp(.85rem, 1.55vw, 1.7rem) auto 0;
   display: grid;
-  grid-template-columns: minmax(0, .85fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) min(54.05%, 1280px);
   align-items: center;
   gap: 0;
   border-radius: 1.2rem;
@@ -124,10 +124,29 @@
     linear-gradient(112deg, #e4f3ff, #f8fbff 60%, #d8eaf8);
 }
 .pub-home-page .pub-home-copy {
+  --home-copy-inset: clamp(1.3rem, 3.4vw, 3rem);
   grid-area: 1 / 1;
   margin: 0;
   max-width: none;
-  padding: clamp(1.3rem, 3.4vw, 3rem);
+  padding: var(--home-copy-inset);
+}
+.pub-home-signs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .55rem;
+  margin-block-start: .65rem;
+  margin-inline-end: calc(.5rem - var(--home-copy-inset));
+}
+.pub-home-signs .pub-pill {
+  min-width: 0;
+  margin-top: 0;
+}
+.pub-home-plates {
+  flex: none;
+  width: min(40%, clamp(5.4rem, 12.5vw, 240px));
+  height: auto;
+  filter: drop-shadow(0 .13rem .12rem rgb(40 52 76 / 19%));
 }
 .pub-home-page .pub-home-copy h1 {
   font-size: clamp(3rem, 6.5vw, min(9.5rem, 180px));
@@ -152,7 +171,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .pub-home-page .pub-home-copy {
-    padding: 1.2rem 1.2rem .95rem;
+    --home-copy-inset: 1.2rem;
+    padding: 1.2rem var(--home-copy-inset) .55rem;
   }
   .pub-home-page .pub-home-art {
     grid-area: 2 / 1;

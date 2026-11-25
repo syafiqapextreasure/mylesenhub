@@ -129,8 +129,6 @@
           if (f.querySelector(`[name=${key}][type=checkbox]`))
             payload[key] = formData.getAll(key);
         delete payload.status;
-        if (f.hasAttribute("data-member-profile"))
-          delete payload.instituteChoice;
         if (
           f.hasAttribute("data-member-profile") &&
           btn?.value === "semakan" &&
@@ -351,31 +349,21 @@
         option.dataset.state && option.dataset.state !== state,
       );
     if (district.selectedOptions[0]?.disabled) district.value = "";
-    for (const option of form.querySelectorAll("[data-dm-institute] option"))
-      option.hidden = option.disabled = Boolean(
-        (option.dataset.state && option.dataset.state !== state) ||
-        (option.dataset.district && option.dataset.district !== district.value),
-      );
-    const institute = form.querySelector("[data-dm-institute]");
-    if (institute) {
-      if (institute.selectedOptions[0]?.disabled) institute.value = "";
-      syncMemberInstitute(form);
-    }
-  }
-  function syncMemberInstitute(form) {
-    const choice = form.querySelector("[data-dm-institute]").value;
-    const custom = form.querySelector("[data-dm-institute-custom]");
-    const entry = custom.querySelector("input");
-    custom.hidden = choice !== "other";
-    entry.required = !custom.hidden;
-    form.elements.institute.value = custom.hidden ? choice : entry.value.trim();
   }
   for (const form of document.querySelectorAll("[data-member-profile]"))
     syncMemberLocations(form);
-  document.addEventListener("input", (event) => {
-    if (event.target.matches("[data-dm-institute-custom] input"))
-      syncMemberInstitute(event.target.form);
-  });
+  for (const picker of document.querySelectorAll("[data-dm-institute-picker]")) {
+    const name = picker.querySelector('[name="institute"]');
+    const directory = picker.querySelector("[data-registered-institute]");
+    directory.addEventListener("change", () => {
+      if (directory.value) name.value = directory.value;
+    });
+    name.addEventListener("input", () => {
+      directory.value = [...directory.options].some(option => option.value === name.value)
+        ? name.value
+        : "";
+    });
+  }
   function refreshClassChips(picker) {
     const selected = picker.querySelectorAll("input:checked");
     const children = Array.from(selected, (input) => {
@@ -440,8 +428,6 @@
         member.elements.district.value = "";
       syncMemberLocations(member);
     }
-    if (member && control.matches("[data-dm-institute]"))
-      syncMemberInstitute(member);
     if (control.matches("[data-dm-classes] input"))
       refreshClassChips(control.closest("[data-dm-classes]"));
     if (!control.matches("[data-media]") || !gallery) return;

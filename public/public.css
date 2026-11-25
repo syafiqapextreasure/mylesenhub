@@ -184,10 +184,8 @@ body:has(.pub-site) {
 .pub-footer a {
   text-decoration: none;
 }
-.pub-footer strong {
-  font-size: 1.23em;
-  letter-spacing: -0.045em;
-  font-weight: 850;
+.pub-site .pub-footer .pub-brand {
+  width: clamp(7rem, 10vw, 9rem);
 }
 .pub-footer div > * + *,
 .pub-footer nav > * + * {
@@ -1040,7 +1038,7 @@ body:has(.pub-site) {
 }
 .pub-class-picker summary {
   min-height: max(44px, 2.35rem);
-  padding: 0.5rem 0.7rem;
+  padding: 0.5rem var(--picker-inset);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1052,14 +1050,14 @@ body:has(.pub-site) {
 }
 .pub-class-picker summary::after {
   content: "";
-  width: 0.48em;
-  height: 0.48em;
-  border-right: 2px solid;
-  border-bottom: 2px solid;
-  transform: rotate(45deg) translateY(-0.12em);
+  flex: none;
+  width: var(--picker-size);
+  height: var(--picker-size);
+  background: currentColor;
+  mask: var(--picker-chevron) center / contain no-repeat;
 }
 .pub-class-picker[open] summary::after {
-  transform: rotate(225deg);
+  transform: rotate(180deg);
 }
 .pub-class-picker summary > span {
   display: flex;

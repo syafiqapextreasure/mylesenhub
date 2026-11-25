@@ -36,12 +36,10 @@ const journeys = {
       postcode: "81200",
       representative: "Wakil Ujian",
       position: "Wakil",
-
     },
     files: {
       logo: "brand",
       gallery: ["profile-car", "amir"],
-
     },
   },
 };
@@ -51,7 +49,7 @@ const journeys = {
 async function fixture(
   page,
   role,
-  { failFirst = false, requireVerification = false } = {},
+  { failFirst = false, requireVerification = false, registry = false } = {},
 ) {
   const state = {
     signedIn: false,
@@ -77,7 +75,26 @@ async function fixture(
           '<!doctype html><html lang="ms"><meta charset="utf-8"><link rel="stylesheet" href="/base.css"><link rel="stylesheet" href="/public.css">' +
           publicPageStyles(at) +
           '<script src="/public.js" defer></script>' +
-          renderPublic(at, url, { user }) +
+          renderPublic(at, url, {
+            user,
+            ...(registry
+              ? {
+                  institutes: [
+                    { name: "Institut Melaka Berdaftar", state: "Melaka" },
+                    { name: "Institut Johor Berdaftar", state: "Johor" },
+                    { name: "Institut Contoh", demo: true },
+                    { name: "Institut Disembunyikan", _hidden: true },
+                  { name: "Institut Disembunyikan Katalog", hidden: true },
+                  ],
+                  instructors: [
+                    {
+                      name: "Instructor Ujian",
+                      institute: "Institut Dalam Profil Sahaja",
+                    },
+                  ],
+                }
+              : {}),
+          }) +
           "</html>",
       });
     }
@@ -142,6 +159,9 @@ export async function registrationCases({
   async function completeForm(page, role) {
     const journey = journeys[role];
     await chooseLocation(page);
+    await expect(page.locator(".pub-class-picker + .pub-spim-help")).toHaveText(
+      "Boleh pilih lebih daripada satu",
+    );
     if (role === "institut")
       await expect(page.locator('[name^="promotion"]')).toHaveCount(0);
     await fields(page, {
@@ -158,6 +178,70 @@ export async function registrationCases({
     }
     await page.locator("[name=consent]").check();
   }
+
+  await test(
+    "Registered institutes, free text and legacy draft language",
+    mode,
+    async (page) => {
+      await fixture(page, "instructor", { registry: true });
+      await page.goto(origin + journeys.instructor.path);
+      const language = page.locator("[name=languages]");
+      await expect(language.locator("option")).toHaveText([
+        "Pilih bahasa",
+        "Melayu",
+        "Inggeris",
+        "Cina",
+        "India",
+      ]);
+      const institute = page.locator("[name=institute]");
+      const registered = page.locator("[data-registered-institute]");
+      await expect(page.locator("[name=state]")).toHaveValue("");
+      await expect(registered.locator("option")).toHaveText([
+        "Pilih institut",
+        "Institut Johor Berdaftar",
+        "Institut Melaka Berdaftar",
+      ]);
+      await registered.selectOption("Institut Melaka Berdaftar");
+      await expect(institute).toHaveValue("Institut Melaka Berdaftar");
+      await institute.fill("Institut Tidak Tersenarai");
+      await expect(registered).toHaveValue("");
+      await language.selectOption("Cina");
+      await page.getByRole("button", { name: "Simpan draf" }).click();
+      await expect(page.getByRole("status")).toContainText("Draf disimpan");
+      await page.evaluate(
+        () =>
+          new Promise((resolve, reject) => {
+            const open = indexedDB.open("mylesenhub-public", 1);
+            open.onerror = () => reject(open.error);
+            open.onsuccess = () => {
+              const db = open.result;
+              const tx = db.transaction("drafts", "readwrite");
+              const store = tx.objectStore("drafts");
+              const read = store.get("instructor");
+              read.onsuccess = () => {
+                const draft = read.result;
+                draft.values.languages = "Melayu & Inggeris";
+                store.put(draft, "instructor");
+              };
+              tx.oncomplete = () => {
+                db.close();
+                resolve();
+              };
+              tx.onerror = () => {
+                db.close();
+                reject(tx.error);
+              };
+            };
+          }),
+      );
+      await page.reload();
+      await expect(language).toHaveValue("Melayu & Inggeris");
+      await expect(institute).toHaveValue("Institut Tidak Tersenarai");
+      await expect(registered).toHaveValue("");
+      await language.selectOption("Inggeris");
+      await expect(language).toHaveValue("Inggeris");
+    },
+  );
 
   async function signUp(page, role, requireVerification = false) {
     await expect(page).toHaveURL(/\/signup\?/);

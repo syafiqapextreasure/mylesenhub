@@ -3,6 +3,19 @@ const locationData = JSON.parse(
 );
 const locationForms = [...document.querySelectorAll("[data-location]")];
 
+for (const picker of document.querySelectorAll("[data-registration-institute]")) {
+  const name = picker.querySelector('[name="institute"]');
+  const directory = picker.querySelector("[data-registered-institute]");
+  directory.addEventListener("change", () => {
+    if (directory.value) name.value = directory.value;
+  });
+  name.addEventListener("input", () => {
+    directory.value = [...directory.options].some(option => option.value === name.value)
+      ? name.value
+      : "";
+  });
+}
+
 function syncLocations(form, changed = "") {
   const state = form.elements.state;
   const district = form.elements.district;
@@ -35,12 +48,6 @@ function syncLocations(form, changed = "") {
     );
     institute.disabled =
       form.classList.contains("pub-quick") && !district.value;
-  } else if (institute?.list) {
-    institute.list.replaceChildren(
-      ...unique(local.map((item) => item.institute)).map(
-        (value) => new Option(value),
-      ),
-    );
   }
   if (instructor) {
     fill(
@@ -273,9 +280,20 @@ async function restoreDraft(form, key) {
     else if (
       typeof value === "string" &&
       !["state", "district", "institute"].includes(input.name)
-    )
+    ) {
+      if (
+        input.name === "languages" && value && input.localName === "select" &&
+        ![...input.options].some(option => option.value === value)
+      ) {
+        const legacy = new Option(value, value);
+        input.add(legacy);
+        input.form.addEventListener("reset", () => queueMicrotask(() => legacy.remove()), { once: true });
+      }
       input.value = value;
+    }
   }
+  form.querySelector("[data-registration-institute] [name=institute]")
+    ?.dispatchEvent(new Event("input"));
   refreshClassSummary(form.querySelector(".pub-class-picker"));
   if (
     draft.values.promotionTitle &&

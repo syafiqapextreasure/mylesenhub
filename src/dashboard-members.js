@@ -1,5 +1,7 @@
 import { escapeHtml as e } from "./security.js";
+import { profileLanguages, registeredInstituteNames } from "./form-options.js";
 import { promotionsEnabled } from "./features.js";
+import { licenceClasses as classNames, teachingClasses as spreadClasses } from "./licence-classes.js";
 
 const districts = {
   Johor: [
@@ -16,7 +18,6 @@ const districts = {
   ],
   Melaka: ["Melaka Tengah", "Alor Gajah", "Jasin"],
 };
-const classNames = ["B", "B2", "D", "DA", "QTI"];
 const labels = {
   draft: "Draf",
   semakan: "Menunggu semakan",
@@ -81,10 +82,6 @@ const owned = (data) =>
         s.kind === "affiliation" &&
         s.payload?.requester === data.user.id),
   );
-const spreadClasses = (p) =>
-  Array.isArray(p.spim || p.classes)
-    ? p.spim || p.classes
-    : String(p.spim || p.classes || "").split(/[,/ ]+/);
 const chips = (values) =>
   '<span class="dm-chips">' +
   values
@@ -206,7 +203,7 @@ function classPicker(p, inst) {
       .join("") +
     '</div><button type="button" class="dm-class-toggle" aria-label="Pilih ' +
     label +
-    '" aria-expanded="false" aria-controls="dm-class-options">⌄</button><div id="dm-class-options" class="dm-class-options" role="group" aria-labelledby="dm-classes-label" hidden>' +
+    '" aria-expanded="false" aria-controls="dm-class-options"></button><div id="dm-class-options" class="dm-class-options" role="group" aria-labelledby="dm-classes-label" hidden>' +
     classNames
       .map(
         (v) =>
@@ -270,43 +267,17 @@ export function memberProfileAction(role, data) {
     : "";
 }
 function instituteFields(p, institutes) {
-  const sameLocation = ({ state, district }) =>
-    (!state || state === p.state) && (!district || district === p.district);
-  const known = institutes.some(
-    (item) => item.name === p.institute && sameLocation(item),
-  );
-  const custom = Boolean(p.institute && !known);
-  return (
-    select(
-      "instituteChoice",
-      "Institut Memandu",
-      custom ? "other" : p.institute,
-      [
-        ...institutes.map((item) => [
-          item.name,
-          ' data-state="' +
-            e(item.state) +
-            '" data-district="' +
-            e(item.district) +
-            '"' +
-            (sameLocation(item) ? "" : " hidden disabled"),
-        ]),
-        ["other", "", "Institut lain…"],
-      ],
-      { required: true, prompt: "Pilih institut", attrs: "data-dm-institute" },
-    ) +
-    '<label class="d-field wide" data-dm-institute-custom' +
-    (custom ? "" : " hidden") +
-    "><b>Nama institut lain</b>" +
-    '<input type="text" maxlength="300" value="' +
-    e(custom ? p.institute : "") +
-    '"' +
-    (custom ? " required" : "") +
-    "></label>" +
-    '<input type="hidden" name="institute" value="' +
-    e(p.institute) +
-    '">'
-  );
+  const registered = registeredInstituteNames(institutes);
+  return '<div class="d-field wide dm-institute-picker" data-dm-institute-picker>' +
+    input("institute", "Institut Memandu", p.institute, {
+      required: true, placeholder: "Taip nama institut memandu", attrs: 'maxlength="300"',
+    }) +
+    field("Pilih institut berdaftar",
+      '<select data-registered-institute>' +
+      option("", registered.length ? "Pilih institut" : "Tiada institut berdaftar", p.institute) +
+      registered.map(name => option(name, name, p.institute)).join("") +
+      "</select>") +
+    "</div>";
 }
 export function memberProfile(role, data) {
   const inst = role === "institut",
@@ -321,18 +292,7 @@ export function memberProfile(role, data) {
     "languages",
     "Bahasa",
     p.languages,
-    choices(
-      [
-        "Melayu",
-        "Inggeris",
-        "Melayu & Inggeris",
-        "Melayu & Mandarin",
-        "Melayu & Tamil",
-        "Mandarin",
-        "Tamil",
-      ],
-      p.languages,
-    ),
+    choices(profileLanguages, p.languages),
     { required: true, prompt: "Pilih bahasa" },
   );
   const email = input("email", inst ? "E-mel rasmi" : "E-mel", p.email, {

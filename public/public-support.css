@@ -268,3 +268,10 @@
     min-width: 0;
   }
 }
+.pub-form-section .pub-institute-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: .55rem 1rem;
+  align-items: end;
+}
+.pub-classes .pub-spim-help { display: block; margin-top: .3rem; }

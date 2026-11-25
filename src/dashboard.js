@@ -141,7 +141,7 @@ function shell(role, slug, data, content) {
       <button class="d-open-drawer d-mobile-control" aria-expanded="false" aria-controls="d-navigation" aria-label="Buka menu" type="button"><span></span><span></span><span></span></button>
       ${logo}<span class="d-avatar">${avatar}</span>
     </header><header class="d-top"><nav aria-label="Jejak navigasi"><a href="/">Utama</a> <span>/</span> <a href="${root}/ringkasan">${roleLabel}</a> <span>/</span> ${esc(titles[role][slug])}</nav><strong><a class="d-status-link" href="${root}/${role === "admin" ? "permohonan" : "status-semakan"}" aria-label="Lihat perkembangan permohonan">${icon("bell")}</a><span class="d-avatar">${avatar}</span>${name}</strong></header>
-    <main class="d-content">${content}</main><footer><div><strong>MyLesenHub</strong>　•　Johor &amp; Melaka</div><div><a href="/privasi">Privasi</a>　 |　 <a href="/terma">Terma</a></div></footer></div></div>`;
+    <main class="d-content">${content}</main><footer><div class="d-footer-brand">${logo}<span>Johor &amp; Melaka</span></div><div><a href="/privasi">Privasi</a>　 |　 <a href="/terma">Terma</a></div></footer></div></div>`;
 }
 
 function renderDashboard(path, url, data = {}) {

@@ -17,8 +17,12 @@ const client = (page, path, handler) =>
     route.fulfill({ json: await handler(route.request()) }),
   );
 async function fields(page, names) {
-  for (const [name, value] of Object.entries(names))
-    await page.locator('[name="' + name + '"]').fill(value);
+  for (const [name, value] of Object.entries(names)) {
+    const control = page.locator('[name="' + name + '"]');
+    if (await control.evaluate((input) => input.localName === "select"))
+      await control.selectOption(value);
+    else await control.fill(value);
+  }
 }
 async function test(name, mode, run, viewport = { width: 1440, height: 900 }) {
   if (registrationOnly && mode !== "Local registration fixture") return;
@@ -70,6 +74,15 @@ try {
       await expect(page.getByRole("heading", { name: "Tiada profil untuk carian ini" })).toBeVisible();
       await page.getByRole("link", { name: "Terokai profil contoh" }).click();
       await expect(page.locator(".pub-instructor-card")).toHaveCount(6);
+      const licence = page.getByRole("combobox", { name: "Kelas Lesen", exact: true });
+      assert.deepEqual(await licence.locator("option").allTextContents(), [
+        "Semua kelas", "B", "B2", "D", "DA", "QTI",
+      ]);
+      await licence.selectOption("QTI");
+      await page.getByRole("button", { name: "Cari Instructor" }).click();
+      await expect(page.getByRole("heading", { name: "Tiada profil untuk carian ini" })).toBeVisible();
+      await expect(licence).toHaveValue("QTI");
+      await licence.selectOption("DA");
       await page.locator("[name=name]").fill("Daniel");
       await page.getByRole("button", { name: "Cari Instructor" }).click();
       await expect(page).toHaveURL(/contoh=1/);
@@ -88,6 +101,7 @@ try {
       await page.getByRole("link", { name: "Kembali ke carian" }).click();
       await page.getByRole("link", { name: "Tetapkan semula" }).click();
       await expect(page.locator("[name=state]")).toHaveValue("");
+      await expect(licence).toHaveValue("");
       await expect(page.locator(".pub-instructor-card")).toHaveCount(6);
       await page.goto(origin + "/");
       await page.getByRole("link", { name: "Melaka Lihat direktori" }).click();

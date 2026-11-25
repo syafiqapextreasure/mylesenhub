@@ -447,9 +447,24 @@
 }
 .dashboard footer {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .8rem 1.2rem;
   justify-content: space-between;
   border-top: 1px solid #dcebf8;
   padding: 18px 32px;
+}
+.d-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+.d-footer-brand .d-logo {
+  width: clamp(7rem, 10vw, 9rem);
+}
+.d-footer-brand span {
+  border-inline-start: 1px solid #aab4c4;
+  padding-inline-start: .85rem;
 }
 .dashboard button:focus-visible,
 .dashboard a:focus-visible,

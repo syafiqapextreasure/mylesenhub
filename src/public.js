@@ -1,4 +1,7 @@
 import { promotionsEnabled } from "./features.js";
+import { licenceClasses as classes, teachingClasses } from "./licence-classes.js";
+import { profileLanguages, registeredInstituteNames } from "./form-options.js";
+
 const states = {
   Johor: [
     "Johor Bahru",
@@ -18,7 +21,6 @@ const search = "/cari-instructor";
 const join = "/sertai-kami";
 const institute = "/daftar-institut";
 const slogan = "Memandu dengan ilmu & ikhsan";
-const classes = ["B", "B2", "D", "DA", "QTI"];
 const demoLabel = "Profil contoh untuk pratonton";
 const esc = (value = "") =>
   String(value ?? "").replace(
@@ -179,7 +181,7 @@ const header = (path, user, access, demo) =>
       "</div>") +
   "</div></header>";
 const footer = (user) =>
-  '<footer class="pub-footer pub-shell"><div><a href="/"><strong>MyLesenHub</strong></a><span>Johor &amp; Melaka</span></div><nav aria-label="Pautan kaki halaman"><a href="' +
+  '<footer class="pub-footer pub-shell"><div>' + brand() + '<span>Johor &amp; Melaka</span></div><nav aria-label="Pautan kaki halaman"><a href="' +
   (user ? "/dashboard" : "/login") +
   '">' +
   (user ? "Dashboard" : "Log masuk") +
@@ -329,9 +331,9 @@ const mainHome = () =>
   ) +
   '<div class="pub-home-copy"><h1>Everyone<br>Can Drive</h1><strong>Carian instructor terbaik di lokasi anda</strong><p>' +
   slogan +
-  '</p><i aria-hidden="true"></i>' +
+  '</p><i aria-hidden="true"></i><div class="pub-home-signs">' +
   pill("Direktori komuniti percuma") +
-  '</div></section><div class="pub-shell"><section class="pub-panel pub-home-search"><h2>Mulakan carian anda</h2><form action="' +
+  '<img src="/media/learner-plates.webp" class="pub-home-plates" width="282" height="160" alt=""></div></div></section><div class="pub-shell"><section class="pub-panel pub-home-search"><h2>Mulakan carian anda</h2><form action="' +
   search +
   '" method="get" class="pub-filter pub-quick" data-location>' +
   locationFields("", "") +
@@ -380,11 +382,14 @@ const mainSearch = (data, url) => {
     params.get("institute") ??
     (sampleOnly && !params.has("state") ? "Institut Memandu Contoh" : "");
   const name = params.get("name") || "";
+  const requestedClass = (params.get("kelas") || "").trim().toUpperCase();
+  const licenceClass = classes.includes(requestedClass) ? requestedClass : "";
   const matches = data.instructors.filter(
     (item) =>
       (!state || item.state === state) &&
       (!district || item.district === district) &&
       (!school || item.institute === school) &&
+      (!licenceClass || teachingClasses(item).includes(licenceClass)) &&
       (!name || item.name.toLowerCase().includes(name.toLowerCase())),
   );
   const pages = Math.ceil(matches.length / 6);
@@ -458,6 +463,7 @@ const mainSearch = (data, url) => {
         "data-institute",
       ),
     ) +
+    field("Kelas Lesen", select("kelas", "Semua kelas", classes, licenceClass)) +
     field(
       "Nama instructor",
       '<input name="name" type="search" placeholder="Cari nama instructor" value="' +
@@ -483,7 +489,7 @@ const mainSearch = (data, url) => {
     "</b></div>" +
     (cards
       ? '<div class="pub-instructor-grid">' + cards + "</div>"
-      : '<div class="pub-panel pub-empty"><h3>Tiada profil untuk carian ini</h3><p>Cuba lokasi atau nama instructor yang lain.</p>' +
+      : '<div class="pub-panel pub-empty"><h3>Tiada profil untuk carian ini</h3><p>Cuba kelas lesen, lokasi atau nama instructor yang lain.</p>' +
         button(
           "Lihat semua instructor",
           search + "?state=" + (sampleOnly ? "&contoh=1" : ""),
@@ -724,7 +730,7 @@ const checkbox = (text) =>
 const classOptions = (label = "Kelas SPIM") =>
   '<fieldset class="pub-classes"><legend>' +
   label +
-  '</legend><small>Boleh pilih lebih daripada satu</small><details class="pub-class-picker"><summary><span data-class-summary>Pilih kelas</span></summary><div>' +
+  '</legend><details class="pub-class-picker" aria-describedby="pub-spim-help"><summary><span data-class-summary>Pilih kelas</span></summary><div>' +
   classes
     .map(
       (entry) =>
@@ -735,7 +741,18 @@ const classOptions = (label = "Kelas SPIM") =>
         "</label>",
     )
     .join("") +
-  "</div></details></fieldset>";
+  '</div></details><small class="pub-spim-help" id="pub-spim-help">Boleh pilih lebih daripada satu</small></fieldset>';
+const registrationInstitute = (data) => {
+  const registered = registeredInstituteNames(data.institutes);
+  return '<div class="pub-full pub-institute-picker" data-registration-institute>' +
+    field("Institut Memandu", input("institute", "Taip nama institut memandu", "text", "required maxlength=\"300\"")) +
+    '<label class="pub-field"><span>Pilih institut berdaftar</span>' +
+    '<select data-registered-institute><option value="">' +
+    (registered.length ? "Pilih institut" : "Tiada institut berdaftar") +
+    '</option>' +
+    registered.map((name) => option(name, "")).join("") +
+    "</select></label></div>";
+};
 const uploads = (name, label, multiple = false) =>
   '<div class="pub-field pub-upload-field"><span>' +
   label +
@@ -913,20 +930,10 @@ const register = (data, isInstitute) => {
               input("phone", "Nombor telefon anda", "tel"),
             ) +
             locationFields("", "", true) +
-            field(
-              "Institut Memandu",
-              input(
-                "institute",
-                "Nama institut memandu",
-                "text",
-                'required list="pub-institute-options" data-institute',
-              ),
-              true,
-            ) +
-            '<datalist id="pub-institute-options"></datalist>' +
+            registrationInstitute(data) +
             field(
               "Bahasa",
-              input("languages", "Contoh: Melayu &amp; Inggeris"),
+              select("languages", "Pilih bahasa", profileLanguages, "", "required"),
               true,
             ),
         ),

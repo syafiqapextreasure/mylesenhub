@@ -38,6 +38,7 @@ const approved = {
   login: ["/login", "Dashboard_Designs/00_Login_Bersama_v2.png"],
 };
 const comparisonNotes = {
+  "licence-filter": "Penapis Kelas Lesen dipilih kepada D. Rujukan menunjukkan paparan carian asal; medan pilihan dan keputusan ialah pelaksanaan terkini dengan data contoh.",
   home: "Foto kumpulan Putrajaya yang dibekalkan menggantikan imej hero dalam lakaran asal.",
   directory:
     "Lebar penapis, tinggi hero, jarak kad dan potret Cikgu Daniel diselaraskan. Enam profil contoh dipaparkan untuk membandingkan grid dengan rujukan.",
@@ -59,6 +60,7 @@ const comparisonNotes = {
     "Dua panel desktop, gambar, tinggi medan dan butang log masuk diselaraskan. Pada telefon, panel disusun menegak.",
 };
 const extras = {
+  "licence-filter": ["/cari-instructor?contoh=1&kelas=D", "Cari_Instructor_Designs/Cari_Instructor_Find_The_Best_v3.png"],
   farah: ["/instructor/cikgu-farah?contoh=1", profileReference],
   hafiz: ["/instructor/cikgu-hafiz?contoh=1", profileReference],
   "mei-ling": ["/instructor/cikgu-mei-ling?contoh=1", profileReference],
@@ -143,6 +145,7 @@ fs.writeFileSync(
   JSON.stringify(results, null, 2),
 );
 const titles = {
+  "licence-filter": "Carian · Kelas Lesen D",
   home: "Laman utama",
   directory: "Cari Instructor",
   amir: "Cikgu Amir",
@@ -221,7 +224,7 @@ const typography = measured
 const html = `<!doctype html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyLesenHub · Perbandingan halaman awam</title><style>
 *{box-sizing:border-box}html{scroll-padding-top:5rem}body{margin:0 auto;padding:clamp(.8rem,2vw,2.8rem);font:clamp(1rem,.87rem + .35vw,1.42rem)/1.5 system-ui,sans-serif;max-width:170rem;color:#131a3b;background:#f1f6fa}h1,h2{line-height:1.12}h1{margin:.5rem 0}h2{margin:0}p{max-width:80ch}a{color:#174f84}section,details{background:white;border:1px solid #d3dfeb;border-radius:1rem;padding:clamp(.75rem,1.5vw,1.8rem);margin:1rem 0}summary,label{font-weight:700}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;align-items:start}figure{margin:0;min-width:0}img{width:100%;height:auto;display:block;border:1px solid #d6e2ee}figcaption{padding:.5rem 0;font-weight:650}.picker{position:sticky;top:0;background:#e6f0f9;z-index:1;padding:.5rem .75rem;border-block:1px solid #c3d4e2}select{padding:.45rem;font:inherit;color:inherit;border:1px solid #9cabbd;border-radius:.45rem}table{border-collapse:collapse;margin:1rem 0}th,td{text-align:left;border-bottom:1px solid #d4dfeb;padding:.4em .75em}caption{text-align:left}nav{line-height:1.9}@media(max-width:600px){.pair{grid-template-columns:1fr}.picker{font-size:1rem}details{overflow-x:auto}}
 .review-switch{display:inline-flex;align-items:center;gap:.55em;background:#0c2750;color:white;border-radius:.55rem;padding:.6em .95em;font-weight:740;text-decoration:none}.review-switch:hover{background:#16447d}.review-switch:focus-visible{outline:3px solid #285c9b;outline-offset:3px}.review-group{margin-top:1.35em}
-</style></head><body><header><h1>Perbandingan halaman awam MyLesenHub</h1><p>Bandingkan 12 halaman awam pada lima lebar skrin. Klik gambar untuk melihat saiz penuhnya.</p><nav aria-label="Semakan projek"><a class="review-switch" href="../dashboard/index.html">Lihat perbandingan dashboard Instructor, Institut &amp; Admin <span aria-hidden="true">→</span></a></nav></header>
+</style></head><body><header><h1>Perbandingan halaman awam MyLesenHub</h1><p>Bandingkan halaman awam dan penapis Kelas Lesen pada lima lebar skrin. Klik gambar untuk melihat saiz penuhnya.</p><nav aria-label="Semakan projek"><a class="review-switch" href="../dashboard/index.html">Lihat perbandingan dashboard Instructor, Institut &amp; Admin <span aria-hidden="true">→</span></a></nav></header>
 <details><summary>Pilih halaman</summary><nav aria-label="Halaman awam">${navLinks(publicPages)}</nav><nav aria-label="Paparan tambahan">${navLinks(additionalPages)}</nav></details>
 <details><summary>Data pratonton dan rujukan profil</summary><p>Direktori dan profil di sini menggunakan rekod contoh. Profil awam sebenar hanya memaparkan rekod yang telah diterbitkan. Butang hubungan pada profil contoh dilumpuhkan. Borang pendaftaran bermula kosong.</p><p>Semua profil menggunakan susun atur Daniel v2 dengan potret, pengenalan dan galeri masing-masing. Lakaran Amir dan Aina masih boleh dibuka sebagai rujukan variasi asal.</p></details>${typography}
 <div class="picker"><label for="width">Lebar paparan laman </label><select id="width">${sizes}</select></div>${renderSections(publicPages)}

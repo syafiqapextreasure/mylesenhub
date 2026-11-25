@@ -1,17 +1,12 @@
 import { check, clean, uuid } from "./security.js";
 import { promotionsEnabled, promotionFields } from "./features.js";
+import { teachingClasses } from "./licence-classes.js";
 const appRoles = ["instructor", "institut", "admin"];
-const classes = ["B", "B2", "D", "DA", "QTI"];
 const privateMedia = /^\/api\/media\/[a-f0-9-]{36}$/i;
 function images(raw) {
   return (Array.isArray(raw) ? raw : [])
     .filter((v) => typeof v === "string" && privateMedia.test(v))
     .slice(0, 12);
-}
-function choiceList(v) {
-  return (Array.isArray(v) ? v : String(v || "").split(/[,/ ]+/)).filter((x) =>
-    classes.includes(x),
-  );
 }
 function profilePayload(raw, kind) {
   const p = {};
@@ -47,7 +42,7 @@ function profilePayload(raw, kind) {
     raw.displayName || raw.display_name || raw.name || raw.fullName,
   );
   p.displayName = clean(raw.displayName || raw.display_name || p.name);
-  p.spim = choiceList(raw.spim || raw.classes);
+  p.spim = teachingClasses(raw);
   p.classes = p.spim;
   p.gallery = images(raw.gallery);
   p.photo = images([raw.photo || raw.logo])[0] || "";
@@ -95,6 +90,7 @@ function publicProfile(row) {
   allowed.push("galleryCaptions");
   if (row.kind === "program") allowed.push("location", "reference");
   for (const k of allowed) if (p[k] !== undefined) out[k] = p[k];
+  if (row.kind === "instructor") out.spim = teachingClasses(p);
   return out;
 }
 export async function catalog(sql, includeHidden = false) {

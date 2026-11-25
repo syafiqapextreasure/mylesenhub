@@ -6,6 +6,9 @@
   font-display: swap;
 }
 html {
+  --picker-chevron: url("/media/chevron-down.svg");
+  --picker-inset: .75rem;
+  --picker-size: 1rem;
   font-size: clamp(100%, calc(86% + 0.33vw), 150%);
   color: #0c1535;
   background: white;
@@ -35,6 +38,22 @@ textarea {
 }
 img {
   max-width: 100%;
+}
+.pub-site select:not([multiple]):not([size]),
+.dashboard select:not([multiple]):not([size]) {
+  appearance: none;
+  background-image: var(--picker-chevron);
+  background-position: right var(--picker-inset) center;
+  background-size: var(--picker-size) var(--picker-size);
+  background-repeat: no-repeat;
+  padding-inline-end: calc(var(--picker-inset) + var(--picker-size) + .5rem);
+}
+@media (forced-colors: active) {
+  .pub-site select:not([multiple]):not([size]),
+  .dashboard select:not([multiple]):not([size]) {
+    appearance: auto;
+    background-image: none;
+  }
 }
 a:focus-visible,
 button:focus-visible,

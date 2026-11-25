@@ -56,6 +56,12 @@
 .dm-profile-form .d-field[hidden] {
   display: none;
 }
+.dm-profile-form .dm-institute-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: .5rem 1rem;
+  align-items: end;
+}
 .dm-profile-form .d-field em {
   font-style: normal;
   color: #c80020;
@@ -197,12 +203,25 @@
 .dm-class-toggle {
   flex: none;
   margin-left: auto;
-  padding: 0.25rem 0.65rem;
+  display: grid;
+  place-items: center;
+  min-width: max(44px, calc(var(--picker-inset) * 2 + var(--picker-size)));
+  padding: .25rem var(--picker-inset);
   align-self: stretch;
   border: 0;
   color: inherit;
   background: transparent;
   cursor: pointer;
+}
+.dm-class-toggle::after {
+  content: "";
+  width: var(--picker-size);
+  height: var(--picker-size);
+  background: currentColor;
+  mask: var(--picker-chevron) center / contain no-repeat;
+}
+.dm-class-toggle[aria-expanded="true"]::after {
+  transform: rotate(180deg);
 }
 .dm-class-chips,
 .dm-chips {
