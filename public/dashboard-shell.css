@@ -1,0 +1,310 @@
+.dashboard {
+  background: linear-gradient(145deg, #f6fbff 8%, #e9f5ff 57%, #eef7fc);
+}
+.d-brand-row,
+.dashboard .d-role,
+.d-top strong {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.dashboard .d-sidebar {
+  width: clamp(14.2rem, 18vw, 19rem);
+  padding: 1rem clamp(0.85rem, 1.3vw, 1.7rem);
+}
+.d-brand-row .d-logo {
+  width: min(100%, 11.5rem);
+}
+.dashboard .d-role {
+  white-space: nowrap;
+  margin: 1.2rem 0 0.9rem;
+  padding: 0.65rem 0.8rem;
+}
+.d-person {
+  font-size: 1em;
+}
+.d-avatar {
+  flex: none;
+  overflow: hidden;
+}
+.d-account-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 32%;
+}
+.dashboard .d-sidebar nav a {
+  gap: 0.65rem;
+  white-space: nowrap;
+  border-left: 3px solid transparent;
+}
+.dashboard .d-sidebar nav a.active {
+  border-left-color: var(--red);
+}
+.dashboard .d-sidebar nav a:hover,
+.d-sidebottom a:hover {
+  color: #c8001c;
+}
+.d-sidebottom {
+  margin-top: auto;
+  padding-bottom: 0.45rem;
+}
+.d-sidebar nav {
+  margin-bottom: 2rem;
+}
+.dashboard .d-top strong .d-avatar {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+.d-top .d-avatar .d-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+}
+.d-mobile-head,
+.d-mobile-control,
+.d-scrim {
+  display: none;
+}
+.dashboard .d-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: clamp(8.8rem, 11vw, 13rem);
+  height: auto;
+  gap: 0.6rem;
+  padding: 1rem clamp(1rem, 2vw, 2rem);
+  background: linear-gradient(105deg, #eaf5fd, #d5ecff 58%, #c2e5ff);
+}
+.dashboard .d-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: center / 100% 100% no-repeat url("/media/dashboard-wave.svg");
+}
+.dashboard .d-hero::after {
+  content: "";
+  position: absolute;
+  inset: 5% 1.5% auto auto;
+  width: 15%;
+  height: 68%;
+  z-index: -1;
+  pointer-events: none;
+  background: top right / contain no-repeat url("/media/learner-plates.webp");
+}
+.dashboard .d-hero > div:first-child {
+  flex: 1 1 55%;
+  min-width: 0;
+}
+.dashboard .d-hero h1 {
+  line-height: 1.09;
+  text-wrap: balance;
+}
+.dashboard .d-hero > img {
+  align-self: end;
+  margin: -0.5rem 8% -0.7rem 0;
+  width: clamp(10.5rem, 21vw, 23rem);
+  height: clamp(7rem, 10.5vw, 12rem);
+  object-fit: contain;
+  object-position: center bottom;
+  mask: none;
+}
+.dashboard .d-hero > a,
+.dashboard .d-hero > button {
+  order: 1;
+  flex: none;
+}
+.dashboard .d-hero > img {
+  order: 2;
+}
+@media (max-width: 1000px) {
+  .dashboard .d-sidebar {
+    position: fixed;
+    z-index: 41;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 80vw;
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: white;
+    padding: 1rem 1.2rem;
+    transform: translateX(-102%);
+    visibility: hidden;
+    transition:
+      transform 0.22s ease,
+      visibility 0s 0.22s;
+  }
+  .dashboard.drawer-open .d-sidebar {
+    transform: translateX(0);
+    visibility: visible;
+    transition-delay: 0s;
+  }
+  .dashboard .d-mobile-head {
+    min-height: 4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-bottom: 1px solid #dfebf5;
+  }
+  .d-mobile-head .d-logo {
+    width: 8.4rem;
+  }
+  .d-mobile-head .d-avatar {
+    width: 2.15rem;
+    height: 2.15rem;
+    margin-left: auto;
+  }
+  .d-mobile-head .d-avatar .d-icon {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+  .d-mobile-control {
+    display: inline-grid;
+    place-content: center;
+    gap: 4px;
+    height: 44px;
+    width: 44px;
+    background: #edf6fd;
+    border: 0;
+    border-radius: 12px;
+    color: var(--navy);
+    font-size: 1.8rem;
+    cursor: pointer;
+  }
+  .d-open-drawer span {
+    height: 2px;
+    width: 21px;
+    border-radius: 3px;
+    background: currentColor;
+  }
+  .d-close-drawer {
+    margin-left: auto;
+  }
+  .dashboard .d-scrim {
+    position: fixed;
+    z-index: 40;
+    inset: 0;
+    background: #0a1a3990;
+  }
+  .dashboard.drawer-open .d-scrim {
+    display: block;
+  }
+  html:has(.drawer-open) {
+    overflow: hidden;
+  }
+  .dashboard .d-sidebar nav {
+    display: grid;
+    flex: none;
+    overflow: visible;
+    gap: 0.25rem;
+    margin: 0.9rem 0 1.3rem;
+  }
+  .dashboard .d-sidebar nav a {
+    padding: 0.7rem 0.55rem;
+    font-size: 1rem;
+  }
+  .dashboard .d-person,
+  .dashboard .d-role {
+    display: flex;
+  }
+  .dashboard .d-sidebottom {
+    display: grid;
+  }
+  .dashboard .d-top {
+    height: auto;
+    min-height: 2.4rem;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+  .dashboard .d-top strong {
+    display: none;
+  }
+  .d-top span {
+    padding: 0 0.35rem;
+  }
+}
+@media (max-width: 600px) {
+  .dashboard .d-content {
+    padding: 0.75rem;
+  }
+  .dashboard .d-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 1.1rem 1.1rem 0.35rem;
+    border-radius: 1rem;
+  }
+  .dashboard .d-hero > div:first-child {
+    width: 100%;
+  }
+  .dashboard .d-hero h1 {
+    font-size: clamp(1.55rem, 6.7vw, 2rem);
+    text-wrap: pretty;
+  }
+  .dashboard .d-hero p {
+    line-height: 1.35;
+    font-size: 1rem;
+  }
+  .dashboard .d-hero i {
+    margin-top: 0.6rem;
+    width: 3.1rem;
+    height: 4px;
+  }
+  .dashboard .d-hero > img,
+  .dashboard .d-hero:has(> a) > img,
+  .dashboard .d-hero:has(> button) > img {
+    width: 60%;
+    height: clamp(6.7rem, 25vw, 8.4rem);
+    max-height: none;
+    margin: -0.15rem 13% 0 auto;
+    object-position: center;
+  }
+  .dashboard .d-hero::after,
+  .dashboard .d-hero:has(> a)::after,
+  .dashboard .d-hero:has(> button)::after {
+    inset: auto 3% 3.55rem auto;
+    width: 24%;
+    height: 3.8rem;
+  }
+
+  .dashboard .d-hero > a,
+  .dashboard .d-hero > button {
+    justify-self: start;
+    margin: 0.2rem 0 0.65rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard .d-sidebar {
+    transition: none;
+  }
+}
+.d-sidebottom a,
+.d-sidebottom button {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.d-sidebottom .d-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.d-top .d-status-link {
+  display: grid;
+  place-items: center;
+  min-width: 2.8rem;
+  height: 2.5rem;
+  border-right: 1px solid #d4e1ed;
+}
+.d-top .d-status-link .d-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+}

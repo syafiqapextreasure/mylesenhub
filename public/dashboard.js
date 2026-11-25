@@ -1,4 +1,56 @@
 (() => {
+  const dashboard = document.querySelector(".dashboard");
+  const drawer = dashboard?.querySelector(".d-sidebar");
+  const openMenu = dashboard?.querySelector(".d-open-drawer");
+  if (drawer && openMenu) {
+    const main = dashboard.querySelector(".d-main");
+    const closeMenu = drawer.querySelector(".d-close-drawer");
+    const mobile = matchMedia("(max-width:1000px)");
+    function toggle(open) {
+      dashboard.classList.toggle("drawer-open", open);
+      openMenu.setAttribute("aria-expanded", String(open));
+      if (open) {
+        drawer.setAttribute("role", "dialog");
+        drawer.setAttribute("aria-modal", "true");
+        main.inert = true;
+        requestAnimationFrame(() => {
+          if (dashboard.classList.contains("drawer-open")) closeMenu.focus();
+        });
+      } else {
+        main.inert = false;
+        drawer.removeAttribute("role");
+        drawer.removeAttribute("aria-modal");
+        if (mobile.matches) openMenu.focus();
+      }
+    }
+    openMenu.addEventListener("click", () => toggle(true));
+    closeMenu.addEventListener("click", () => toggle(false));
+    dashboard
+      .querySelector(".d-scrim")
+      .addEventListener("click", () => toggle(false));
+    mobile.addEventListener("change", () => {
+      if (dashboard.classList.contains("drawer-open")) toggle(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (!dashboard.classList.contains("drawer-open")) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        toggle(false);
+      }
+      if (event.key !== "Tab") return;
+      const controls = [
+        ...drawer.querySelectorAll("a[href], button:not(:disabled)"),
+      ];
+      if (event.shiftKey && document.activeElement === controls[0]) {
+        event.preventDefault();
+        controls.at(-1).focus();
+      }
+      if (!event.shiftKey && document.activeElement === controls.at(-1)) {
+        event.preventDefault();
+        controls[0].focus();
+      }
+    });
+  }
   const post = async (url, body) => {
     let r = await fetch(url, {
       method: "POST",
@@ -63,7 +115,7 @@
     let f = e.target;
     if (
       !f.matches(
-        "[data-submit-kind],[data-review],[data-access],[data-affiliation],[data-directory]",
+        "[data-submit-kind],[data-review],[data-access],[data-affiliation],[data-instructor-affiliation],[data-affiliation-decision],[data-directory],[data-review-note],[data-representative]",
       )
     )
       return;
@@ -77,6 +129,16 @@
           if (f.querySelector(`[name=${key}][type=checkbox]`))
             payload[key] = formData.getAll(key);
         delete payload.status;
+        if (f.hasAttribute("data-member-profile"))
+          delete payload.instituteChoice;
+        if (
+          f.hasAttribute("data-member-profile") &&
+          btn?.value === "semakan" &&
+          !(payload.spim || payload.classes || []).length
+        ) {
+          f.querySelector(".dm-class-toggle").focus();
+          throw Error("Pilih sekurang-kurangnya satu kelas.");
+        }
         let result = await post("/api/submissions", {
           kind: f.dataset.submitKind,
           payload,
@@ -84,6 +146,10 @@
           ...(f.dataset.id ? { id: f.dataset.id } : {}),
         });
         show(f, result.message || "Maklumat berjaya disimpan.");
+        if (f.hasAttribute("data-member-profile")) {
+          if (btn?.value === "draft" && result.id) f.dataset.id = result.id;
+          else if (btn?.value === "semakan") delete f.dataset.id;
+        }
         if (result.redirect) location.href = result.redirect;
       } else if (f.dataset.review) {
         if (f.dataset.pending === "true") return;
@@ -137,15 +203,52 @@
           status: "semakan",
         });
         show(f, result.message || "Permintaan dihantar untuk semakan.");
-      } else if (f.hasAttribute("data-directory")) {
-        if (!confirm("Tarik balik profil ini daripada direktori awam?")) return;
-        let result = await post("/api/directory", {
-          id: f.dataset.directory,
-          action: "unpublish",
+        f.querySelector("button").disabled = true;
+      } else if (f.hasAttribute("data-instructor-affiliation")) {
+        const result = await post(
+          "/api/affiliation/request",
+          Object.fromEntries(new FormData(f)),
+        );
+        show(f, result.message);
+        f.querySelector("button").disabled = true;
+      } else if (f.hasAttribute("data-affiliation-decision")) {
+        await post("/api/affiliation/decision", {
+          id: f.dataset.affiliationDecision,
+          action: btn?.value,
         });
-        show(f, result.message || "Profil ditarik balik.");
-        if (result.redirect) location.href = result.redirect;
-        else location.reload();
+        location.reload();
+      } else if (f.hasAttribute("data-directory")) {
+        const action = f.dataset.action || "unpublish";
+        if (
+          !confirm(
+            action === "publish"
+              ? "Terbitkan semula profil ini?"
+              : "Sembunyikan profil ini daripada direktori awam?",
+          )
+        )
+          return;
+        const result = await post("/api/directory", {
+          id: f.dataset.directory,
+          action,
+        });
+        show(f, result.message || "Direktori dikemas kini.");
+        location.reload();
+      } else if (f.hasAttribute("data-review-note")) {
+        const result = await post("/api/review-note", {
+          id: f.dataset.reviewNote,
+          note: new FormData(f).get("note"),
+        });
+        show(f, result.message || "Nota dalaman disimpan.");
+      } else if (f.hasAttribute("data-representative")) {
+        const checks = new FormData(f);
+        const result = await post("/api/representative", {
+          userId: f.dataset.representative,
+          action: f.dataset.action,
+          identityChecked: checks.has("identityChecked"),
+          authorityChecked: checks.has("authorityChecked"),
+        });
+        show(f, result.message || "Pengesahan dikemas kini.");
+        location.reload();
       } else {
         let result = await post("/api/access", {
           userId: f.dataset.access,
@@ -157,8 +260,150 @@
       show(f, err.message);
     }
   });
-  let media = [],
-    removed = [];
+  const gallery = document.querySelector("[data-gallery-panel]");
+  let galleryPortrait = gallery?.dataset.priorPhoto;
+  let activeUploads = 0;
+  function updateGallery() {
+    const items = [...gallery.querySelectorAll(".d-gallery-item")];
+    items.forEach((item, index) => {
+      item.querySelector("[data-move-media=up]").disabled = index === 0;
+      item.querySelector("[data-move-media=down]").disabled =
+        index === items.length - 1;
+    });
+    gallery.querySelector("[data-gallery-count]").textContent =
+      items.length + " gambar";
+    const first = items[0]?.querySelector("img");
+    const cover = gallery.querySelector("[data-gallery-primary]");
+    if (cover) {
+      if (first) {
+        const preview = first.cloneNode();
+        preview.alt = "Gambar utama";
+        cover.replaceChildren(preview);
+      } else cover.replaceChildren();
+    }
+  }
+  async function uploadGallery(files, type, control) {
+    activeUploads++;
+    try {
+      for (const file of files) {
+        if (
+          !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+          file.size > 2 * 1024 * 1024
+        )
+          throw Error("Gunakan gambar JPG, PNG atau WebP sehingga 2 MB.");
+        const grid = gallery.querySelector(".d-gallery-preview");
+        let item =
+          type === "replace"
+            ? control.closest(".d-gallery-item")
+            : type === "replace_primary"
+              ? grid.firstElementChild
+              : null;
+        if (type !== "profile_photo" && !item && grid.childElementCount >= 12)
+          throw Error("Galeri terhad kepada 12 gambar.");
+        const response = await fetch("/api/media", {
+          method: "POST",
+          headers: { "content-type": file.type },
+          body: file,
+        });
+        const result = await response.json();
+        if (!response.ok || !result.url)
+          throw Error(result.message || "Muat naik gagal.");
+        if (type === "profile_photo") {
+          galleryPortrait = result.url;
+          const image = document.createElement("img");
+          image.src = result.url;
+          image.alt = "Pratonton foto profil";
+          gallery.querySelector("[data-profile-photo]").replaceChildren(image);
+        } else {
+          if (!item) {
+            item = gallery
+              .querySelector("[data-gallery-template]")
+              .content.firstElementChild.cloneNode(true);
+            grid.append(item);
+          }
+          item.dataset.existingUrl = result.url;
+          item.querySelector("img").src = result.url;
+          updateGallery();
+        }
+      }
+      show(gallery, "Gambar tersedia untuk disemak sebelum dihantar.");
+    } catch (error) {
+      show(gallery, error.message);
+    } finally {
+      activeUploads--;
+    }
+  }
+  if (gallery) {
+    updateGallery();
+    const drop = gallery.querySelector(".dm-gallery-drop");
+    drop.addEventListener("dragover", (event) => event.preventDefault());
+    drop.addEventListener("drop", (event) => {
+      event.preventDefault();
+      uploadGallery([...event.dataTransfer.files], "gallery", null);
+    });
+  }
+  function syncMemberLocations(form) {
+    const state = form.elements.state.value;
+    const district = form.elements.district;
+    district.disabled = !state;
+    for (const option of district.options)
+      option.disabled = option.hidden = Boolean(
+        option.dataset.state && option.dataset.state !== state,
+      );
+    if (district.selectedOptions[0]?.disabled) district.value = "";
+    for (const option of form.querySelectorAll("[data-dm-institute] option"))
+      option.hidden = option.disabled = Boolean(
+        (option.dataset.state && option.dataset.state !== state) ||
+        (option.dataset.district && option.dataset.district !== district.value),
+      );
+    const institute = form.querySelector("[data-dm-institute]");
+    if (institute) {
+      if (institute.selectedOptions[0]?.disabled) institute.value = "";
+      syncMemberInstitute(form);
+    }
+  }
+  function syncMemberInstitute(form) {
+    const choice = form.querySelector("[data-dm-institute]").value;
+    const custom = form.querySelector("[data-dm-institute-custom]");
+    const entry = custom.querySelector("input");
+    custom.hidden = choice !== "other";
+    entry.required = !custom.hidden;
+    form.elements.institute.value = custom.hidden ? choice : entry.value.trim();
+  }
+  for (const form of document.querySelectorAll("[data-member-profile]"))
+    syncMemberLocations(form);
+  document.addEventListener("input", (event) => {
+    if (event.target.matches("[data-dm-institute-custom] input"))
+      syncMemberInstitute(event.target.form);
+  });
+  function refreshClassChips(picker) {
+    const selected = picker.querySelectorAll("input:checked");
+    const children = Array.from(selected, (input) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.dmRemoveClass = input.value;
+      button.setAttribute("aria-label", "Buang kelas " + input.value);
+      const mark = document.createElement("span");
+      mark.setAttribute("aria-hidden", "true");
+      mark.textContent = "×";
+      button.append(input.value + " ", mark);
+      return button;
+    });
+    picker.querySelector("[data-dm-chips]").replaceChildren(...children);
+  }
+  function closeClassPicker(picker) {
+    picker.querySelector(".dm-class-options").hidden = true;
+    picker
+      .querySelector(".dm-class-toggle")
+      .setAttribute("aria-expanded", "false");
+  }
+  document.addEventListener("keydown", (event) => {
+    const picker = event.target.closest("[data-dm-classes]");
+    if (picker && event.key === "Escape") {
+      closeClassPicker(picker);
+      picker.querySelector(".dm-class-toggle").focus();
+    }
+  });
   document.addEventListener("change", async (e) => {
     if (e.target.matches("[data-poster]")) {
       let input = e.target,
@@ -188,67 +433,39 @@
       }
       return;
     }
-    if (!e.target.matches("[data-media]")) return;
-    let target = e.target;
-    for (const file of target.files) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Saiz gambar maksimum ialah 2 MB.");
-        continue;
-      }
-      try {
-        let r = await fetch("/api/media", {
-            method: "POST",
-            headers: { "content-type": file.type },
-            body: file,
-          }),
-          j = await r.json();
-        if (!r.ok || !j.url) throw Error(j.message || "Muat naik gagal.");
-        media.push({ type: target.dataset.media, url: j.url });
-        let preview = document.querySelector(".d-gallery-preview");
-        if (target.dataset.media === "profile_photo") {
-          let current = target
-            .closest(".dp-gallery-head")
-            ?.querySelector("img");
-          if (current) current.src = j.url;
-        } else if (preview) {
-          let item = document.createElement("div");
-          item.className = "d-gallery-item";
-          item.dataset.newUrl = j.url;
-          let img = document.createElement("img");
-          img.src = j.url;
-          img.alt = "Pratonton gambar";
-          let remove = document.createElement("button");
-          remove.type = "button";
-          remove.className = "d-btn outline";
-          remove.textContent = "Buang gambar";
-          remove.dataset.removeMedia = "";
-          let label = document.createElement("label");
-          label.className = "d-field";
-          label.textContent = "Kapsyen gambar";
-          let caption = document.createElement("input");
-          caption.dataset.galleryCaption = "";
-          label.append(caption);
-          let up = document.createElement("button");
-          up.type = "button";
-          up.className = "d-btn outline";
-          up.textContent = "←";
-          up.dataset.moveMedia = "up";
-          up.setAttribute("aria-label", "Alih gambar ke kiri");
-          let down = document.createElement("button");
-          down.type = "button";
-          down.className = "d-btn outline";
-          down.textContent = "→";
-          down.dataset.moveMedia = "down";
-          down.setAttribute("aria-label", "Alih gambar ke kanan");
-          item.append(img, label, up, down, remove);
-          preview.append(item);
-        }
-      } catch (err) {
-        alert(err.message);
-      }
+    const control = e.target;
+    const member = control.closest("[data-member-profile]");
+    if (member && control.matches("[data-dm-state],[data-dm-district]")) {
+      if (control.matches("[data-dm-state]"))
+        member.elements.district.value = "";
+      syncMemberLocations(member);
     }
+    if (member && control.matches("[data-dm-institute]"))
+      syncMemberInstitute(member);
+    if (control.matches("[data-dm-classes] input"))
+      refreshClassChips(control.closest("[data-dm-classes]"));
+    if (!control.matches("[data-media]") || !gallery) return;
+    await uploadGallery([...control.files], control.dataset.media, control);
+    control.value = "";
   });
   document.addEventListener("click", async (e) => {
+    const invite = e.target.closest("[data-copy-invite]");
+    if (invite) {
+      const panel = invite.closest("details");
+      const text = new URL(invite.dataset.copyInvite, location.origin).href;
+      try {
+        await navigator.clipboard.writeText(text);
+        show(panel, "Pautan disalin.");
+      } catch {
+        const input = panel.querySelector(
+          `[data-invite-path="${invite.dataset.copyInvite}"]`,
+        );
+        input.value = text;
+        input.focus();
+        input.select();
+        show(panel, "Salin pautan yang dipilih.");
+      }
+    }
     let out = e.target.closest("[data-logout]");
     if (out) {
       try {
@@ -258,47 +475,84 @@
         alert(err.message);
       }
     }
-    let move = e.target.closest("[data-move-media]");
+    const picker = e.target.closest("[data-dm-classes]");
+    for (const open of document.querySelectorAll("[data-dm-classes]"))
+      if (open !== picker) closeClassPicker(open);
+    if (picker) {
+      const toggle = e.target.closest(".dm-class-toggle");
+      const removeChip = e.target.closest("[data-dm-remove-class]");
+      if (toggle) {
+        const options = picker.querySelector(".dm-class-options");
+        options.hidden = !options.hidden;
+        toggle.setAttribute("aria-expanded", String(!options.hidden));
+      }
+      if (removeChip) {
+        const input = Array.from(picker.querySelectorAll("input")).find(
+          (option) => option.value === removeChip.dataset.dmRemoveClass,
+        );
+        if (input) input.checked = false;
+        refreshClassChips(picker);
+        picker.querySelector(".dm-class-toggle").focus();
+      }
+    }
+    const move = e.target.closest("[data-move-media]");
     if (move) {
-      let item = move.closest(".d-gallery-item");
+      const item = move.closest(".d-gallery-item");
       if (move.dataset.moveMedia === "up" && item.previousElementSibling)
         item.parentElement.insertBefore(item, item.previousElementSibling);
       if (move.dataset.moveMedia === "down" && item.nextElementSibling)
         item.parentElement.insertBefore(item.nextElementSibling, item);
+      updateGallery();
+      if (move.disabled)
+        item.querySelector("[data-move-media]:not(:disabled)")?.focus();
     }
-    let remove = e.target.closest("[data-remove-media]");
+    const remove = e.target.closest("[data-remove-media]");
     if (remove) {
-      let item = remove.closest(".d-gallery-item");
-      if (item.dataset.existingUrl) removed.push(item.dataset.existingUrl);
-      if (item.dataset.newUrl)
-        media = media.filter((x) => x.url !== item.dataset.newUrl);
+      const item = remove.closest(".d-gallery-item");
+      const next = item.nextElementSibling || item.previousElementSibling;
       item.remove();
+      updateGallery();
+      (
+        next?.querySelector("[data-remove-media]") ||
+        gallery.querySelector("#muat-naik-galeri input")
+      )?.focus();
     }
-    let save = e.target.closest("[data-save-media]");
-    if (save) {
+    const save = e.target.closest("[data-save-media]");
+    if (save && !gallery.dataset.saving) {
+      if (activeUploads) {
+        show(gallery, "Tunggu sehingga gambar selesai dimuat naik.");
+        return;
+      }
+      gallery.dataset.saving = "true";
+      const controls = gallery.querySelectorAll("[data-save-media]");
+      controls.forEach((button) => (button.disabled = true));
       try {
-        let panel = save.closest("[data-gallery-panel]"),
-          galleryOrder = [...(panel?.querySelectorAll(".d-gallery-item") || [])]
-            .map((item) => ({
-              url: item.dataset.existingUrl || item.dataset.newUrl,
-              caption:
-                item.querySelector("[data-gallery-caption]")?.value || "",
-            }))
-            .filter((x) => x.url);
-        let r = await post("/api/submissions", {
+        const galleryOrder = [
+          ...gallery.querySelectorAll(".d-gallery-item"),
+        ].map((item) => ({
+          url: item.dataset.existingUrl,
+          caption: item.querySelector("[data-gallery-caption]").value,
+        }));
+        const result = await post("/api/submissions", {
           kind: "media",
-          payload: { images: media, remove: removed, galleryOrder },
-          status: save.dataset.status || "semakan",
+          payload: {
+            images: galleryPortrait
+              ? [{ type: "profile_photo", url: galleryPortrait }]
+              : [],
+            galleryOrder,
+          },
+          status: save.dataset.status,
+          ...(gallery.dataset.id ? { id: gallery.dataset.id } : {}),
         });
-        show(
-          save.closest("[data-gallery-panel]") || save.parentElement,
-          r.message || "Gambar dihantar untuk semakan.",
-        );
-      } catch (err) {
-        show(
-          save.closest("[data-gallery-panel]") || save.parentElement,
-          err.message,
-        );
+        if (save.dataset.status === "draft" && result.id)
+          gallery.dataset.id = result.id;
+        else if (save.dataset.status === "semakan") delete gallery.dataset.id;
+        show(gallery, result.message || "Gambar dihantar untuk semakan.");
+      } catch (error) {
+        show(gallery, error.message);
+      } finally {
+        controls.forEach((button) => (button.disabled = false));
+        delete gallery.dataset.saving;
       }
     }
   });

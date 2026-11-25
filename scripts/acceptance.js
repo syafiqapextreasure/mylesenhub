@@ -125,23 +125,65 @@ const reg = await post(
   inst.cookie,
 );
 await publish(reg.id);
-const promo = await post(
+for (const route of ["promosi", "promosi-borang"]) {
+  const response = await fetch(origin + "/dashboard/institut/" + route, {
+    headers: { cookie: inst.cookie },
+  });
+  assert.equal(response.status, 404);
+}
+await assert.rejects(
+  post(
+    "/api/submissions",
+    { kind: "program", status: "draft", payload: { title: "Test" } },
+    inst.cookie,
+  ),
+  /403/,
+);
+await assert.rejects(
+  post(
+    "/api/register/institut",
+    { name: "QA", state: "Melaka", district: "Jasin", promotionTitle: "Test" },
+    inst.cookie,
+  ),
+  /403/,
+);
+const [programCount] =
+  await sql`SELECT count(*)::int AS count FROM mylesenhub.submissions WHERE user_id=${inst.id} AND kind='program'`;
+assert.equal(programCount.count, 0);
+console.log(
+  "PASS disabled promotion pages return 404, both write paths reject submissions, no program row created.",
+);
+const [legacyDraft] =
+  await sql`INSERT INTO mylesenhub.submissions(user_id,kind,status,payload) VALUES(${inst.id},'institut','draft',${JSON.stringify({ name: "Institut QA", promotionTitle: "Archived acceptance title" })}::jsonb) RETURNING id`;
+await post(
   "/api/submissions",
   {
-    kind: "program",
-    status: "semakan",
-    payload: {
-      title: "Program QA " + stamp,
-      type: "Program",
-      description: "Semakan paparan program.",
-    },
+    id: legacyDraft.id,
+    kind: "institut",
+    status: "draft",
+    payload: { name: "Profil dikemas kini" },
   },
   inst.cookie,
 );
-await publish(promo.id);
-const [listing] =
-  await sql`SELECT payload FROM mylesenhub.listings WHERE id=${promo.id}`;
-assert.equal(listing.payload.title, "Program QA " + stamp);
+const [savedDraft] =
+  await sql`SELECT payload FROM mylesenhub.submissions WHERE id=${legacyDraft.id}`;
+assert.equal(savedDraft.payload.name, "Profil dikemas kini");
+assert.equal(savedDraft.payload.promotionTitle, "Archived acceptance title");
+const [historical] =
+  await sql`INSERT INTO mylesenhub.submissions(user_id,kind,status,payload) VALUES(${inst.id},'program','semakan',${JSON.stringify({ title: "Historical " + stamp })}::jsonb) RETURNING id`;
+await assert.rejects(
+  post("/api/review", { id: historical.id, action: "verify" }, admin.cookie),
+  /404/,
+);
+const adminView = await (
+  await fetch(origin + "/dashboard/admin/permohonan?q=" + stamp, {
+    headers: { cookie: admin.cookie },
+  })
+).text();
+assert(!adminView.includes("Historical " + stamp));
+console.log(
+  "PASS previous promotion data survives a profile edit, and archived programs stay out of admin review.",
+);
 await post("/api/contact", {
   name: "QA",
   email: instructor.email,
@@ -152,7 +194,7 @@ const msgs =
   await sql`SELECT id FROM mylesenhub.messages WHERE email=${instructor.email}`;
 assert(msgs.length);
 console.log(
-  "PASS institute registration, program approval and contact form persistence.",
+  "PASS institute registration, approval and contact form persistence.",
 );
 await post(
   "/api/directory",

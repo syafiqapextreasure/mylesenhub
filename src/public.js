@@ -1,3 +1,4 @@
+import { promotionsEnabled } from "./features.js";
 const states = {
   Johor: [
     "Johor Bahru",
@@ -29,21 +30,16 @@ const esc = (value = "") =>
   );
 const art = (name) => "/media/" + name + ".webp";
 const responsiveWidths = {
-  "home-hero": 2014,
-  "amir-hero": 1774,
-  "about-hero": 1839,
-  "join-hero": 1817,
-  "institute-hero": 1838,
+  "home-hero": 1280,
+  "login-hero": 1694,
   "about-team": 1511,
-  "join-team": 1586,
-  "institute-team": 1576,
+  "join-team": 1585,
+  "institute-team": 1575,
   "home-johor": 1748,
   "home-melaka": 1748,
-  "search-hero": 1900,
-  "contact-hero": 1775,
 };
 const responsiveSizes = {
-  "home-hero": "100vw",
+  "home-hero": "(max-width: 760px) 100vw, (min-width: 2350px) 1280px, 55vw",
   "about-team": "(max-width: 760px) 96vw, 56vw",
   "join-team": "(max-width: 460px) 94vw, (max-width: 760px) 46vw, 32vw",
   "institute-team": "(max-width: 460px) 94vw, (max-width: 760px) 46vw, 32vw",
@@ -110,7 +106,7 @@ const icon = (name) =>
   "</svg>";
 const brand = () =>
   '<a href="/" class="pub-brand" aria-label="MyLesenHub, Utama">' +
-  '<img src="/media/brand.svg" alt="" width="270" height="54">' +
+  '<img src="/media/brand.webp" alt="" width="723" height="204">' +
   "</a>";
 const button = (label, href, variant = "") =>
   '<a class="pub-btn ' +
@@ -121,17 +117,11 @@ const button = (label, href, variant = "") =>
   label +
   "</a>";
 const pill = (label) => '<span class="pub-pill">' + label + "</span>";
-// The approved Amir cutout is the high-resolution artwork for the shared profile header.
 const banner = (name, title, trail, lead = "", options = "") =>
   '<section class="pub-banner ' +
   options +
   '">' +
-  photo(
-    art(name === "profile" ? "amir-hero" : name + "-hero"),
-    "",
-    ["search", "contact"].includes(name) ? "pub-banner-art pub-banner-blend" : "pub-banner-art",
-    true,
-  ) +
+  '<div class="pub-vehicle pub-vehicle-' + name + '" aria-hidden="true"><img class="pub-banner-art" src="/media/branded-axia.webp" srcset="/media/branded-axia-640.webp 640w, /media/branded-axia.webp 907w" sizes="(max-width: 760px) 70vw, 36vw" width="907" height="593" alt=""><img class="pub-plate-pair" src="/media/learner-plates.webp" width="282" height="160" alt=""></div>' +
   '<div class="pub-banner-copy"><nav class="pub-breadcrumb" aria-label="Jejak halaman"><a href="/">Utama</a>' +
   trail
     .map(
@@ -153,10 +143,7 @@ const header = (path, user, access, demo) =>
   '<header class="pub-head"><div class="pub-head-inner">' +
   brand() +
   (access
-    ? (demo
-        ? '<span class="pub-login-preview">' + pill("Data contoh") + "</span>"
-        : "") +
-      '<a class="pub-back-home" href="/">' +
+    ? '<a class="pub-back-home" href="/">' +
       icon("back") +
       " Kembali ke laman utama</a>"
     : '<button class="pub-menu" type="button" aria-expanded="false" aria-controls="pub-nav">Menu</button><nav id="pub-nav" aria-label="Navigasi utama">' +
@@ -336,7 +323,7 @@ const mainHome = () =>
   '<div class="pub-home-page"><section class="pub-home-hero">' +
   photo(
     art("home-hero"),
-    "Bangunan Perdana Putra di Putrajaya",
+    "Pasukan MyLesenHub bersama tiga kereta latihan putih dan dua motosikal di hadapan Perdana Putra, Putrajaya",
     "pub-home-art",
     true,
   ) +
@@ -775,8 +762,7 @@ const joinAside = (isInstitute) => {
   const advantages = isInstitute
     ? [
         "Profil institut yang lengkap",
-        "Promosi yang mudah ditemui",
-        "Maklumat program terkini",
+        ...(promotionsEnabled ? ["Promosi yang mudah ditemui", "Maklumat program terkini"] : ["Carian mengikut lokasi", "Maklumat hubungan institut"]),
       ]
     : [
         "Profil yang mudah ditemui",
@@ -788,7 +774,7 @@ const joinAside = (isInstitute) => {
         "Maklumat institut",
         "Wakil untuk dihubungi",
         "Logo dan gambar",
-        "Promosi atau program",
+        ...(promotionsEnabled ? ["Promosi atau program"] : []),
       ]
     : [
         "Foto dan pengenalan",
@@ -893,7 +879,7 @@ const register = (data, isInstitute) => {
             uploads("logo", "Logo institut") +
             uploads("gallery", "Galeri institut", true),
         ),
-        '<section class="pub-form-section"><h3>Promosi &amp; program (pilihan)</h3><div class="pub-promotion"><h4>Promosi IM / Program khas kerajaan</h4><p>Sertakan tajuk, penerangan, tempoh dan poster.</p><details><summary>Tambah promosi / program</summary><div class="pub-fields">' +
+        promotionsEnabled ? '<section class="pub-form-section"><h3>Promosi &amp; program (pilihan)</h3><div class="pub-promotion"><h4>Promosi IM / Program khas kerajaan</h4><p>Sertakan tajuk, penerangan, tempoh dan poster.</p><details><summary>Tambah promosi / program</summary><div class="pub-fields">' +
           field(
             "Tajuk promosi atau program",
             input("promotionTitle", "Tajuk", "text", ""),
@@ -911,7 +897,7 @@ const register = (data, isInstitute) => {
           field("Tarikh mula", input("promotionStart", "", "date", "")) +
           field("Tarikh tamat", input("promotionEnd", "", "date", "")) +
           uploads("promotionPoster", "Poster promosi") +
-          "</div></details></div></section>",
+          "</div></details></div></section>" : "",
       ]
     : [
         formSection(
@@ -982,13 +968,13 @@ const register = (data, isInstitute) => {
           "institute",
           "Daftar Institut<br> Memandu",
           [["Join Us", join], ["Daftar Institut Memandu"]],
-          "Perkenalkan institut, promosi dan program anda.",
+          promotionsEnabled ? "Perkenalkan institut, promosi dan program anda." : "Perkenalkan institut anda kepada bakal pemandu.",
         )
       : banner(
           "join",
           "Join Us",
           [["Join Us"]],
-          "Untuk lebih menyakinkan kepada bakal-bakal pemandu baru &amp; promosi-promosi menarik terkini dari IM jugak program2 khas kerajaan",
+          promotionsEnabled ? "Untuk lebih menyakinkan kepada bakal-bakal pemandu baru &amp; promosi-promosi menarik terkini dari IM jugak program2 khas kerajaan" : "Bantu bakal pemandu mengenali instructor dan institut memandu di lokasi mereka.",
           "pub-join-banner",
         )) +
     (isInstitute
@@ -1002,7 +988,7 @@ const register = (data, isInstitute) => {
         "</nav>"
       : '<section class="pub-panel pub-strip pub-join-institute"><span class="pub-round">' +
         icon("temple") +
-        "</span><div><h3>Anda mewakili Institut Memandu?</h3><p>Daftarkan institut, promosi dan program anda.</p></div>" +
+        "</span><div><h3>Anda mewakili Institut Memandu?</h3><p>Daftarkan profil institut memandu anda.</p></div>" +
         button("Daftar Institut Memandu " + icon("arrow"), institute) +
         "</section>") +
     '<div class="pub-register pub-section">' +
@@ -1227,6 +1213,7 @@ const terms = (path) => {
   );
 };
 const programDirectory = (data) => {
+  if (!promotionsEnabled) return "";
   const records = [
     ...data.programs,
     ...data.institutes

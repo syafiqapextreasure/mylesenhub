@@ -1,3 +1,4 @@
+import { isPausedPromotionPage } from "../src/features.js";
 import http from "node:http";
 import { existsSync, createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -46,7 +47,7 @@ const submissions = [
   },
 ].map((r) => ({
   ...r,
-  user_id: "contoh",
+  user_id: r.kind === "instructor" ? "contoh-instructor" : "contoh-institut",
   created_at: "2026-11-25",
   updated_at: "2026-11-25",
 }));
@@ -74,7 +75,7 @@ http
       const dash = p.startsWith("/dashboard"),
         role = p.split("/")[2] || "instructor";
       const user = {
-        id: "contoh",
+        id: "contoh-" + role,
         role,
         name:
           role === "admin"
@@ -89,7 +90,16 @@ http
         institutes: demoInstitutes,
         programs: [],
         submissions,
-        users: [user],
+        users: [
+          user,
+          {
+            id: "contoh-institut",
+            name: "Wakil Institut",
+            email: "institut@example.invalid",
+            role: "institut",
+            representative_verified: false,
+          },
+        ],
         demo: true,
         user: dash ? user : null,
         profile: role === "institut" ? demoInstitutes[0] : sample,
@@ -111,29 +121,76 @@ http
         role === "institut"
           ? {
               ...demoInstitutes[0],
+              representative: "Wakil Institut (contoh)",
+              position: "Penyelaras",
+              classes: ["B2", "D", "DA"],
+              bio: "Kenali kemudahan latihan dan instructor di Institut Memandu Contoh.",
               photo: "/media/institute-building.webp",
+              galleryLogo: "/media/institute-logo.webp",
               gallery: [
                 "/media/institute-car.webp",
                 "/media/institute-pair.webp",
                 "/media/institute-track.webp",
               ],
+              galleryCaptions: {
+                "/media/institute-car.webp":
+                  "Sesi latihan memandu di litar institut.",
+                "/media/institute-pair.webp": "Tenaga pengajar institut kami.",
+                "/media/institute-track.webp":
+                  "Litar latihan memandu yang lengkap.",
+              },
             }
           : {
               ...sample,
+              fullName: "Daniel (contoh)",
+              instituteOwner: "contoh-institut",
+              previewPhoto: "/media/daniel-dashboard.webp",
               gallery: [
                 "/media/profile-lesson.webp",
                 "/media/profile-car.webp",
                 "/media/profile-coaching.webp",
               ],
+              galleryCaptions: {
+                "/media/profile-lesson.webp": "Bimbingan di dalam kereta",
+                "/media/profile-car.webp": "Kenderaan latihan",
+                "/media/profile-coaching.webp": "Penerangan bersama pelajar",
+              },
             };
-      data.submissions = submissions.map((s) =>
-        s.kind === "program"
-          ? {
-              ...s,
-              payload: { ...s.payload, poster: "/media/promo-road.webp" },
-            }
-          : s,
-      );
+      data.submissions = submissions
+        .filter((s) => role === "admin" || s.user_id === user.id)
+        .map((s) =>
+          s.kind === "program"
+            ? {
+                ...s,
+                payload: { ...s.payload, poster: "/media/promo-road.webp" },
+              }
+            : s,
+        );
+      if (dash && role === "instructor") {
+        data.submissions = data.submissions.map((s) => ({
+          ...s,
+          status: "semakan",
+          payload: data.profile,
+        }));
+      }
+      if (dash && role === "institut") {
+        data.instructors = demoInstructors.filter(
+          (item) => item.slug !== "cikgu-farah",
+        );
+        data.submissions.push({
+          id: "link-farah",
+          kind: "affiliation",
+          user_id: user.id,
+          status: "semakan",
+          payload: {
+            requester: "contoh-farah",
+            action: "link",
+            instructorId: "cikgu-farah",
+          },
+          created_at: "2026-11-24",
+          updated_at: "2026-11-24",
+        });
+      }
       const mod = await import(
         "../src/" +
           (dash ? "dashboard" : "public") +
@@ -146,13 +203,16 @@ http
         res.writeHead(404);
         return res.end("Not found");
       }
+      if (isPausedPromotionPage(p)) res.statusCode = 404;
       const skin = dash ? "dashboard" : "public";
       res.setHeader("content-type", "text/html;charset=utf-8");
       res.end(
         '<!doctype html><html lang="ms"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="/base.css"><link rel="stylesheet" href="/' +
           skin +
           '.css">' +
-          (dash ? "" : mod.publicPageStyles(p)) +
+          (dash
+            ? '<link rel="stylesheet" href="/dashboard-shell.css"><link rel="stylesheet" href="/dashboard-admin.css">'
+            : mod.publicPageStyles(p)) +
           '<script defer src="/' +
           skin +
           '.js"></script></head><body>' +

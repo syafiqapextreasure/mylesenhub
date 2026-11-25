@@ -1,3 +1,4 @@
+import { isPausedPromotionPage } from "./features.js";
 import { neon } from "@neondatabase/serverless";
 import { publicPageStyles, renderPublic } from "./public.js";
 import { renderDashboard } from "./dashboard.js";
@@ -33,7 +34,7 @@ const pages = {
   ],
   "/daftar-institut": [
     "Daftar Institut Memandu",
-    "Daftar institut, maklumat hubungan, promosi dan program anda.",
+    "Daftar profil institut memandu, lokasi, galeri dan maklumat hubungan anda.",
   ],
   "/login": ["Log masuk", "Akses dashboard MyLesenHub anda."],
   "/signup": ["Daftar akaun", "Buka akaun MyLesenHub."],
@@ -81,7 +82,7 @@ function document(body, options) {
     '/media/social-share.webp"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/media/icon-car.webp"><link rel="preload" href="/font/dm-sans.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/base.css"><link rel="stylesheet" href="/' +
     css +
     '.css">' +
-    (dash ? "" : publicPageStyles(path)) +
+    (dash ? '<link rel="stylesheet" href="/dashboard-shell.css"><link rel="stylesheet" href="/dashboard-admin.css">' : publicPageStyles(path)) +
     '<script src="/' +
     css +
     '.js" defer></script>' +
@@ -267,7 +268,7 @@ async function serve(req, env) {
             ].includes(path),
           jsonld: schema,
         }),
-    { status: found ? 200 : 404, headers: pageHeaders() },
+    { status: found && !isPausedPromotionPage(path) ? 200 : 404, headers: pageHeaders() },
   );
 }
 export default {

@@ -34,7 +34,12 @@ Laman `/cari-instructor?contoh=1` memaparkan contoh reka bentuk. Direktori biasa
 
 ## Semakan
 
-[Perbandingan reka bentuk dan halaman dashboard (ZIP)](docs/MyLesenHub-Perbandingan-Dashboard.zip) merangkumi 18 halaman untuk log masuk, instructor, institut dan admin. Ekstrak ZIP, buka `index.html`, kemudian pilih peranan dan saiz skrin untuk melihat reka bentuk diluluskan di sebelah tangkapan halaman sebenar dengan data contoh.
+Ekstrak ZIP dan buka `index.html` untuk memilih halaman dan saiz skrin.
+
+- [Semua halaman dan gambar perbandingan sebelah menyebelah](docs/MyLesenHub-Perbandingan-Semua.zip)
+- [Dashboard dengan lakaran dan tangkapan pelayar pada resolusi asal](docs/MyLesenHub-Perbandingan-Dashboard.zip)
+
+Promosi dan program ditutup sementara. Pautan terdahulu memaparkan status HTTP 404. Tetapan `promotionsEnabled` dalam `src/features.js` mengawal paparan, borang dan penerbitannya. Rekod lama disimpan.
 
 `npm run qa:preview` menyediakan pratonton visual dengan data contoh pada loopback port 4173. Ia hanya digunakan untuk semakan reka bentuk.
 

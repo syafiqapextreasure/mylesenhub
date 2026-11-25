@@ -38,7 +38,7 @@ const approved = {
   login: ["/login", "Dashboard_Designs/00_Login_Bersama_v2.png"],
 };
 const comparisonNotes = {
-  home: "Gambar asal Putrajaya serta lencana L dan P digunakan dalam hero. Kedudukan gambar negeri, pemisah empat langkah dan pautan Sertai Komuniti diselaraskan.",
+  home: "Foto kumpulan Putrajaya yang dibekalkan menggantikan imej hero dalam lakaran asal.",
   directory:
     "Lebar penapis, tinggi hero, jarak kad dan potret Cikgu Daniel diselaraskan. Enam profil contoh dipaparkan untuk membandingkan grid dengan rujukan.",
   amir: "Profil Amir menggunakan susun atur bersama dengan potret, pengenalan dan galeri Amir sendiri.",
@@ -54,7 +54,7 @@ const comparisonNotes = {
     "Ketinggian ruang mesej, penjajaran kad bantuan serta ikon mesej dibetulkan. Borang sebenar bermula dengan medan kosong.",
   join: "Sepanduk, pautan institut, ikon muat naik dan menu lungsur kelas SPIM dengan pilihan berbilang diselaraskan. Borang sebenar bermula kosong dan memaparkan foto selepas pengguna memilih fail.",
   institute:
-    "Susun atur maklumat institut, wakil, muat naik dan butang tambah promosi diselaraskan. Medan kosong boleh dilengkapkan oleh pemohon.",
+    "Borang institut menerima maklumat wakil, profil dan gambar. Promosi dan program ditutup sementara.",
   login:
     "Dua panel desktop, gambar, tinggi medan dan butang log masuk diselaraskan. Pada telefon, panel disusun menegak.",
 };

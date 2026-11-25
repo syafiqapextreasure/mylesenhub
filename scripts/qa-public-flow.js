@@ -153,7 +153,7 @@ try {
   );
   await registrationCases({ test, fields, chooseLocation, chooseClass });
   await test(
-    "Institut registration and optional promotion upload",
+    "Institut registration and gallery with promotions disabled",
     "Authenticated fixture UI with stubbed writes",
     async (page) => {
       const path = "/daftar-institut";
@@ -187,22 +187,14 @@ try {
         bio: "Pengenalan untuk ujian fungsi.",
       });
       await chooseClass(page, "DA");
-      await page.getByText("Tambah promosi / program", { exact: true }).click();
-      await fields(page, {
-        promotionTitle: "Taklimat keselamatan",
-        promotionDescription: "Butiran program",
-        promotionStart: "2026-12-01",
-        promotionEnd: "2026-12-02",
-      });
+      await expect(page.locator('[name^="promotion"]')).toHaveCount(0);
       await page
         .locator("[name=logo]")
         .setInputFiles("public/media/brand.webp");
       await page
         .locator("[name=gallery]")
         .setInputFiles("public/media/profile-car.webp");
-      await page
-        .locator("[name=promotionPoster]")
-        .setInputFiles("public/media/profile-car.webp");
+
       await page.locator("[name=consent]").check();
       await page.getByRole("button", { name: "Hantar untuk semakan" }).click();
       await expect(page.getByRole("status")).toContainText(
@@ -211,11 +203,11 @@ try {
       await expect(
         page.getByRole("link", { name: "Lihat status di dashboard" }),
       ).toBeVisible();
-      assert.equal(uploads, 3);
-      assert.equal(submitted.promotionTitle, "Taklimat keselamatan");
+      assert.equal(uploads, 2);
+      assert.equal(submitted.promotionTitle, undefined);
       assert.deepEqual(submitted.spim, ["DA"]);
       assert.equal(submitted.logo, "/api/media/mock-1");
-      assert.equal(submitted.promotionPoster, "/api/media/mock-3");
+      assert.equal(submitted.promotionPoster, undefined);
     },
   );
   await test(

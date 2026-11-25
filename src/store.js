@@ -1,4 +1,5 @@
 import { check, clean, uuid } from "./security.js";
+import { promotionsEnabled, promotionFields } from "./features.js";
 const appRoles = ["instructor", "institut", "admin"];
 const classes = ["B", "B2", "D", "DA", "QTI"];
 const privateMedia = /^\/api\/media\/[a-f0-9-]{36}$/i;
@@ -31,10 +32,9 @@ function profilePayload(raw, kind) {
     "position",
     "maps",
     "bio",
-    "promotionTitle",
-    "promotionDescription",
-    "promotionStart",
-    "promotionEnd",
+    ...(promotionsEnabled
+      ? promotionFields.filter((key) => key !== "promotionPoster")
+      : []),
   ]) {
     p[k] = clean(
       raw[k],
@@ -51,7 +51,8 @@ function profilePayload(raw, kind) {
   p.classes = p.spim;
   p.gallery = images(raw.gallery);
   p.photo = images([raw.photo || raw.logo])[0] || "";
-  p.promotionPoster = images([raw.promotionPoster])[0] || "";
+  if (promotionsEnabled)
+    p.promotionPoster = images([raw.promotionPoster])[0] || "";
   if (p.maps && !/^https?:\/\//i.test(p.maps)) p.maps = "";
   return p;
 }
@@ -87,59 +88,81 @@ function publicProfile(row) {
             "postcode",
             "maps",
             "classes",
-            "promotionTitle",
-            "promotionDescription",
-            "promotionStart",
-            "promotionEnd",
+            ...(promotionsEnabled ? promotionFields : []),
           ]
         : ["institute", "languages", "spim", "experience", "other"];
-  if (row.kind === "institut") allowed.push("promotionPoster");
+
   allowed.push("galleryCaptions");
   if (row.kind === "program") allowed.push("location", "reference");
   for (const k of allowed) if (p[k] !== undefined) out[k] = p[k];
   return out;
 }
-export async function catalog(sql) {
+export async function catalog(sql, includeHidden = false) {
   const listing =
-    await sql`SELECT id,kind,payload,updated_at FROM mylesenhub.listings ORDER BY lower(coalesce(payload->>'name',payload->>'title','')),id`;
-  const group = (k) => listing.filter((r) => r.kind === k).map(publicProfile);
+    await sql`SELECT id,kind,payload,updated_at FROM mylesenhub.listings WHERE (${promotionsEnabled} OR kind<>'program') AND (${includeHidden} OR coalesce(payload->>'_hidden','false') <> 'true') ORDER BY lower(coalesce(payload->>'name',payload->>'title','')),id`;
+  const group = (k) =>
+    listing
+      .filter((r) => r.kind === k)
+      .map((r) => ({
+        ...publicProfile(r),
+        ...(includeHidden ? { hidden: r.payload._hidden === true } : {}),
+      }));
   return {
     instructors: group("instructor"),
     institutes: group("institut"),
-    programs: group("program"),
+    programs: promotionsEnabled ? group("program") : [],
   };
 }
 export async function dashboardData(sql, user, url) {
   const admin = user.role === "admin";
   const subs = admin
-    ? await sql`SELECT * FROM mylesenhub.submissions WHERE status<>'draft' ORDER BY updated_at DESC`
-    : await sql`SELECT * FROM mylesenhub.submissions WHERE user_id=${user.id} ORDER BY updated_at DESC`;
+    ? await sql`SELECT * FROM mylesenhub.submissions WHERE status<>'draft' AND (${promotionsEnabled} OR kind<>'program') ORDER BY updated_at DESC`
+    : await sql`SELECT id,user_id,kind,status,payload,note,created_at,updated_at FROM mylesenhub.submissions WHERE ((user_id=${user.id} AND (kind=${user.role} OR kind NOT IN ('instructor','institut'))) OR (${user.role === "instructor"} AND kind='affiliation' AND payload->>'requester'=${user.id})) AND (${promotionsEnabled} OR kind<>'program') ORDER BY updated_at DESC`;
   const selected =
     admin && url.pathname.endsWith("/semakan")
       ? subs.find((s) => s.id === url.searchParams.get("id"))
       : null;
   const owner = selected?.user_id || user.id;
+  const kind = admin
+    ? ["instructor", "institut"].includes(selected?.kind)
+      ? selected.kind
+      : null
+    : user.role;
   const [listing] =
-    await sql`SELECT payload FROM mylesenhub.listings WHERE user_id=${owner} AND kind IN ('instructor','institut') LIMIT 1`;
+    await sql`SELECT payload FROM mylesenhub.listings WHERE user_id=${owner} AND kind IN ('instructor','institut') AND (${kind}::text IS NULL OR kind=${kind}) ORDER BY updated_at DESC LIMIT 1`;
   const data = {
-    ...(await catalog(sql)),
+    ...(await catalog(sql, admin)),
     submissions: subs,
     user,
     profile: listing?.payload || null,
     users: [],
     messages: [],
   };
+  if (admin && /\/admin(?:\/ringkasan)?\/?$/.test(url.pathname)) {
+    const [counts] =
+      await sql`SELECT count(*)::int AS pending FROM mylesenhub.accounts WHERE role='institut' AND NOT representative_verified`;
+    data.pendingRepresentatives = counts.pending;
+  }
   if (admin && url.pathname.endsWith("/pengguna"))
     data.users =
-      await sql`SELECT id,name,email,role FROM mylesenhub.accounts ORDER BY name`;
+      await sql`SELECT id,name,email,role,representative_verified FROM mylesenhub.accounts ORDER BY name`;
   if (admin && url.pathname.endsWith("/pembetulan"))
     data.messages =
       await sql`SELECT id,name,subject,email,message,created_at FROM mylesenhub.messages ORDER BY created_at DESC`;
   if (user.role === "institut") {
-    data.availableInstructors = data.instructors;
-    const verified =
-      await sql`SELECT id FROM mylesenhub.listings WHERE kind='instructor' AND payload->>'instituteOwner'=${user.id}`;
-    const ids = new Set(verified.map((r) => r.id));
+    const affiliations =
+      await sql`SELECT id,payload->>'instituteOwner' AS owner FROM mylesenhub.listings WHERE kind='instructor'`;
+    const ids = new Set(
+      affiliations.filter((row) => row.owner === user.id).map((row) => row.id),
+    );
+    const available = new Set(
+      affiliations
+        .filter((row) => !row.owner || row.owner === user.id)
+        .map((row) => row.id),
+    );
+    data.availableInstructors = data.instructors.filter((row) =>
+      available.has(row.id),
+    );
     data.instructors = data.instructors.filter((row) => ids.has(row.id));
   }
   return data;
@@ -204,6 +227,18 @@ function normalise(kind, raw) {
 }
 export async function submit(sql, u, body, registrationId) {
   const { kind, status = "semakan" } = body;
+  if (!promotionsEnabled) {
+    check(
+      kind !== "program",
+      403,
+      "Pendaftaran promosi dan program ditutup sementara.",
+    );
+    check(
+      !promotionFields.some((key) => body.payload?.[key]),
+      403,
+      "Maklumat promosi tidak diterima buat masa ini.",
+    );
+  }
   check(
     kind === u.role ||
       ["media", "correction"].includes(kind) ||
@@ -230,12 +265,22 @@ export async function submit(sql, u, body, registrationId) {
         400,
         "Pilih gambar untuk kemas kini.",
       );
-    if (kind === "affiliation")
+    if (kind === "affiliation") {
       check(
         p.instructorId && ["link", "unlink"].includes(p.action),
         400,
         "Pilih instructor dan tindakan.",
       );
+      const [eligible] = await sql`
+        SELECT trainer.id FROM mylesenhub.listings trainer
+        JOIN mylesenhub.listings org ON org.kind='institut' AND org.user_id=${u.id}
+        WHERE trainer.kind='instructor' AND trainer.id=${p.instructorId}
+          AND coalesce(trainer.payload->>'_hidden','false')<>'true'
+          AND coalesce(org.payload->>'_hidden','false')<>'true'
+          AND ((${p.action}='link' AND coalesce(trainer.payload->>'instituteOwner','')='')
+            OR (${p.action}='unlink' AND trainer.payload->>'instituteOwner'=${u.id}))`;
+      check(eligible, 409, "Hubungan ini tidak tersedia untuk institut anda.");
+    }
   }
   if (["instructor", "institut"].includes(kind)) {
     const [current] =
@@ -244,7 +289,8 @@ export async function submit(sql, u, body, registrationId) {
       const old = current.payload;
       for (const key of Object.keys(old))
         if (
-          !(key in body.payload) &&
+          (!(key in (body.payload || {})) ||
+            (!promotionsEnabled && promotionFields.includes(key))) &&
           (!p[key] || (Array.isArray(p[key]) && !p[key].length))
         )
           p[key] = old[key];
@@ -272,7 +318,7 @@ export async function submit(sql, u, body, registrationId) {
   if (body.id) {
     check(uuid(body.id), 400, "Rujukan tidak sah.");
     result =
-      await sql`UPDATE mylesenhub.submissions SET payload=${JSON.stringify(p)}::jsonb,status=${status},updated_at=now() WHERE id=${body.id} AND user_id=${u.id} AND kind=${kind} AND status IN ('draft','pembetulan') RETURNING id`;
+      await sql`UPDATE mylesenhub.submissions SET payload=${JSON.stringify(p)}::jsonb || (SELECT coalesce(jsonb_object_agg(key,value),'{}'::jsonb) FROM jsonb_each(payload) WHERE NOT ${promotionsEnabled} AND key=ANY(${promotionFields}::text[])),status=${status},updated_at=now() WHERE id=${body.id} AND user_id=${u.id} AND kind=${kind} AND status IN ('draft','pembetulan') RETURNING id`;
     if (!result.length && kind === "program") {
       result =
         await sql`INSERT INTO mylesenhub.submissions(user_id,kind,payload,status) SELECT user_id,kind,${JSON.stringify(p)}::jsonb||jsonb_build_object('listingId',coalesce(payload->>'listingId',id::text)),${status} FROM mylesenhub.submissions WHERE id=${body.id} AND user_id=${u.id} AND kind='program' AND status='diterbitkan' RETURNING id`;
@@ -317,12 +363,32 @@ export async function review(sql, user, b) {
     check(note, 400, "Nyatakan pembetulan yang diperlukan.");
   const [sub] =
     await sql`SELECT * FROM mylesenhub.submissions WHERE id=${b.id}`;
-  check(sub, 404, "Permohonan tidak ditemui.");
-  const decision = sql`UPDATE mylesenhub.submissions SET status=${next},note=${note},updated_at=now() WHERE id=${b.id} AND status=ANY(${prev}::text[]) RETURNING id`;
+  check(
+    sub && (promotionsEnabled || sub.kind !== "program"),
+    404,
+    "Permohonan tidak ditemui.",
+  );
+  if (
+    sub.kind === "affiliation" &&
+    sub.payload?.requester &&
+    b.action !== "return"
+  )
+    check(
+      sub.payload.instituteDecision === "approved",
+      409,
+      "Institut perlu mengesahkan hubungan dahulu.",
+    );
+  const decision = sql`WITH changed AS (UPDATE mylesenhub.submissions SET status=${next},note=${note},updated_at=now() WHERE id=${b.id} AND status=ANY(${prev}::text[]) RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},${"review_" + b.action},id::text FROM changed RETURNING target_id`;
   if (b.action !== "publish") {
     const r = await decision;
     check(r.length, 409, "Status telah berubah.");
-    return { status: next, message: b.action === "verify" ? "Permohonan disahkan dan sedia untuk diterbitkan." : "Permohonan dikembalikan untuk pembetulan." };
+    return {
+      status: next,
+      message:
+        b.action === "verify"
+          ? "Permohonan disahkan dan sedia untuk diterbitkan."
+          : "Permohonan dikembalikan untuk pembetulan.",
+    };
   }
   const p = sub.payload,
     profileKind = ["instructor", "institut"].includes(sub.kind);
@@ -331,8 +397,8 @@ export async function review(sql, user, b) {
       ? sub.kind + "-" + sub.user_id
       : p.listingId || sub.id;
     const r =
-      await sql`WITH approved AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' RETURNING user_id,kind,payload)
- INSERT INTO mylesenhub.listings AS l(id,user_id,kind,payload) SELECT ${stableId},user_id,kind,payload FROM approved ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=now() WHERE l.user_id=excluded.user_id RETURNING id`;
+      await sql`WITH approved AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' RETURNING user_id,kind,payload), published AS (
+ INSERT INTO mylesenhub.listings AS l(id,user_id,kind,payload) SELECT ${stableId},user_id,kind,payload FROM approved ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=now() WHERE l.user_id=excluded.user_id RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},'review_publish',${b.id}::text FROM published RETURNING target_id`;
     check(r.length, 409, "Penerbitan tidak tersedia.");
   } else if (sub.kind === "media") {
     const files = p.images || [];
@@ -348,15 +414,15 @@ export async function review(sql, user, b) {
         }
       : {};
     const r =
-      await sql`WITH approved AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' AND EXISTS(SELECT 1 FROM mylesenhub.listings l WHERE l.user_id=${sub.user_id} AND l.kind IN ('instructor','institut')) RETURNING user_id)
- UPDATE mylesenhub.listings l SET payload=l.payload || ${JSON.stringify(photo ? { photo } : {})}::jsonb || jsonb_build_object('gallery', (coalesce(l.payload->'gallery','[]'::jsonb)-${p.remove || []}::text[])||${JSON.stringify(gal)}::jsonb)||${JSON.stringify(galleryPatch)}::jsonb,updated_at=now() FROM approved WHERE l.user_id=approved.user_id AND l.kind IN ('instructor','institut') RETURNING id`;
+      await sql`WITH approved AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' AND EXISTS(SELECT 1 FROM mylesenhub.listings l WHERE l.user_id=${sub.user_id} AND l.kind IN ('instructor','institut')) RETURNING user_id), published AS (
+ UPDATE mylesenhub.listings l SET payload=l.payload || ${JSON.stringify(photo ? { photo } : {})}::jsonb || jsonb_build_object('gallery', (coalesce(l.payload->'gallery','[]'::jsonb)-${p.remove || []}::text[])||${JSON.stringify(gal)}::jsonb)||${JSON.stringify(galleryPatch)}::jsonb,updated_at=now() FROM approved WHERE l.user_id=approved.user_id AND l.kind IN ('instructor','institut') RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},'review_publish',${b.id}::text FROM published RETURNING target_id`;
     check(r.length, 409, "Terbitkan profil terlebih dahulu.");
   } else if (sub.kind === "affiliation") {
     const target = p.instructorId;
     const r =
       await sql`WITH org AS (SELECT payload->>'name' AS name FROM mylesenhub.listings WHERE user_id=${sub.user_id} AND kind='institut'),
- linked AS (UPDATE mylesenhub.listings SET payload=CASE WHEN ${p.action}='link' THEN payload || jsonb_build_object('instituteOwner',${sub.user_id}::text,'institute',(SELECT name FROM org)) ELSE payload-'instituteOwner'-'institute' END,updated_at=now() WHERE id=${target} AND kind='instructor' AND EXISTS(SELECT 1 FROM org) AND (${p.action}='link' OR payload->>'instituteOwner'=${sub.user_id}) AND EXISTS(SELECT 1 FROM mylesenhub.submissions WHERE id=${b.id} AND status='pengesahan' FOR UPDATE) RETURNING id)
- UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' AND EXISTS(SELECT 1 FROM linked) RETURNING id`;
+ linked AS (UPDATE mylesenhub.listings SET payload=CASE WHEN ${p.action}='link' THEN payload || jsonb_build_object('instituteOwner',${sub.user_id}::text,'institute',(SELECT name FROM org)) ELSE payload-'instituteOwner'-'institute' END,updated_at=now() WHERE id=${target} AND kind='instructor' AND EXISTS(SELECT 1 FROM org) AND ((${p.action}='link' AND COALESCE(payload->>'instituteOwner','') IN ('',${sub.user_id})) OR (${p.action}='unlink' AND payload->>'instituteOwner'=${sub.user_id})) AND EXISTS(SELECT 1 FROM mylesenhub.submissions WHERE id=${b.id} AND status='pengesahan' FOR UPDATE) RETURNING id)
+ , published AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' AND EXISTS(SELECT 1 FROM linked) RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},'review_publish',id::text FROM published RETURNING target_id`;
     check(
       r.length,
       409,
@@ -376,7 +442,7 @@ export async function setAccess(sql, u, b) {
   );
   check(appRoles.includes(b.role), 400, "Pilih peranan yang sah.");
   const r =
-    await sql`UPDATE mylesenhub.accounts SET role=${b.role} WHERE id=${clean(b.userId)} RETURNING id`;
+    await sql`WITH changed AS (UPDATE mylesenhub.accounts SET role=${b.role},representative_verified=CASE WHEN role=${b.role} THEN representative_verified ELSE false END WHERE id=${clean(b.userId)} RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${u.id},'access_change',id FROM changed RETURNING target_id`;
   check(r.length, 404, "Akaun tidak ditemui.");
   return { message: "Akses dikemas kini." };
 }

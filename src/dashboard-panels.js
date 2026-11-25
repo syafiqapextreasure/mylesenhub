@@ -1,4 +1,5 @@
 import { escapeHtml as e } from "./security.js";
+import { promotionsEnabled } from "./features.js";
 
 const root = (role) => "/dashboard/" + role;
 const stages = {
@@ -31,8 +32,8 @@ const rows = (data) => data.submissions || [];
 const profile = (data) => data.profile?.payload || data.profile || {};
 const titleOf = (row) =>
   row.payload?.title || row.payload?.name || kinds[row.kind] || "Permohonan";
-function hero(asset, title, subtitle, action = "") {
-  return `<div class="d-hero dp-hero"><div><h1>${e(title)}</h1><p>${e(subtitle)}</p><i></i></div><img src="${arts(asset)}" alt="" fetchpriority="high">${action}</div>`;
+function hero(title, subtitle, action = "") {
+  return `<div class="d-hero dp-hero"><div><h1>${e(title)}</h1><p>${e(subtitle)}</p><i></i></div><img src="/media/branded-axia.webp" alt="" fetchpriority="high">${action}</div>`;
 }
 function stat(ic, label, value) {
   return `<article class="d-card dp-stat"><span class="dp-icon">${icon(ic)}</span><div><strong>${e(label)}</strong><b>${value}</b></div></article>`;
@@ -70,7 +71,7 @@ function profileCard(role, data) {
   );
   return `<section class="d-card dp-profile">${institute ? "<h2>Profil institut</h2>" : ""}${cardPhoto(src, institute ? "institute" : "person")}<h2>${e(p.name || data.user?.name || "Profil anda")}</h2>${!institute && p.institute ? `<p>${icon("institute")} ${e(p.institute)}</p>` : ""}${p.state || p.district ? `<p>${icon("pin")} ${e([p.district, p.state].filter(Boolean).join(", "))}</p>` : ""}${
     institute
-      ? pill(data.profile ? "diterbitkan" : "draft")
+      ? pill(data.profile && !p._hidden ? "diterbitkan" : "draft")
       : `<dl>${[
           [
             "Kelas SPIM",
@@ -87,7 +88,9 @@ function profileCard(role, data) {
   }${link(chosen ? "/instructor/" + encodeURIComponent(chosen.slug) : root(role) + "/profil", chosen ? "Lihat profil awam" : "Lihat profil")}</section>`;
 }
 function adminOverview(data) {
-  const submissions = rows(data),
+  const submissions = rows(data).filter(
+      (x) => promotionsEnabled || x.kind !== "program",
+    ),
     pending = submissions.filter((x) =>
       ["semakan", "pengesahan"].includes(x.status),
     );
@@ -111,16 +114,19 @@ function adminOverview(data) {
     ],
     [
       "access",
-      "Hubungan untuk disahkan",
-      pending.filter((x) => x.kind === "affiliation").length,
+      "Wakil perlu disahkan",
+      data.pendingRepresentatives ??
+        (data.users || []).filter(
+          (u) => u.role === "institut" && !u.representative_verified,
+        ).length,
     ],
   ];
-  return `<h2 class="dp-section-title">Ringkasan pentadbiran</h2>${hero("dash-12", "Selamat kembali, Admin", "Urus permohonan, semakan dan direktori MyLesenHub.")}<div class="dp-stats dp-four">${metrics.map(([i, l, v]) => stat(i, l, e(v))).join("")}</div><div class="dp-columns"><div><section class="d-card"><div class="dp-row"><h2>Perlu tindakan</h2><a href="/dashboard/admin/permohonan">Lihat semua</a></div><div class="dp-admin-table"><table><thead><tr><th>Permohonan</th><th>Jenis</th><th>Status</th><th>Tindakan</th></tr></thead><tbody>${
+  return `<h2 class="dp-section-title">Ringkasan pentadbiran</h2>${hero("Selamat kembali, Admin", "Urus permohonan, semakan dan direktori MyLesenHub.")}<div class="dp-stats dp-four">${metrics.map(([i, l, v]) => stat(i, l, e(v))).join("")}</div><div class="dp-columns"><div><section class="d-card"><div class="dp-row"><h2>Perlu tindakan</h2><a href="/dashboard/admin/permohonan">Lihat semua</a></div><div class="dp-admin-table"><table><thead><tr><th>Permohonan</th><th>Jenis</th><th>Status</th><th>Tindakan</th></tr></thead><tbody>${
     pending
       .slice(0, 4)
       .map(
         (s) =>
-          `<tr><td>${e(titleOf(s))}</td><td>${e(kinds[s.kind])}</td><td>${pill(s.status)}</td><td>${link("/dashboard/admin/semakan?id=" + encodeURIComponent(s.id), "Semak", "red")}</td></tr>`,
+          `<tr><td data-label="Permohonan">${e(titleOf(s))}</td><td data-label="Jenis">${e(kinds[s.kind])}</td><td data-label="Status">${pill(s.status)}</td><td data-label="Tindakan">${link("/dashboard/admin/semakan?id=" + encodeURIComponent(s.id), "Semak", "red")}</td></tr>`,
       )
       .join("") ||
     '<tr><td colspan="4">Tiada permohonan menunggu tindakan.</td></tr>'
@@ -157,11 +163,15 @@ export function overviewPanel(role, data) {
   const metrics = inst
     ? [
         ["people", "Instructor", e((data.instructors || []).length)],
-        [
-          "megaphone",
-          "Promosi & program",
-          e(s.filter((r) => r.kind === "program").length),
-        ],
+        ...(promotionsEnabled
+          ? [
+              [
+                "megaphone",
+                "Promosi & program",
+                e(s.filter((r) => r.kind === "program").length),
+              ],
+            ]
+          : [["image", "Galeri", e((p.gallery || []).length) + " gambar"]]),
         [
           "applications",
           "Perubahan profil",
@@ -172,7 +182,11 @@ export function overviewPanel(role, data) {
         ],
       ]
     : [
-        ["person", "Profil awam", pill(data.profile ? "diterbitkan" : "draft")],
+        [
+          "person",
+          "Profil awam",
+          pill(data.profile && !p._hidden ? "diterbitkan" : "draft"),
+        ],
         [
           "applications",
           "Perubahan terkini",
@@ -183,41 +197,77 @@ export function overviewPanel(role, data) {
   const quick = inst
     ? [
         ["profil", "Kemas kini profil", "edit"],
-        ["promosi-borang", "Tambah promosi / program", "megaphone"],
+        ...(promotionsEnabled
+          ? [["promosi-borang", "Tambah promosi / program", "megaphone"]]
+          : []),
         ["foto-galeri", "Urus foto & galeri", "image"],
       ]
     : [
         ["foto-galeri", "Urus foto & galeri", "image"],
         ["profil", "Semak maklumat hubungan", "person"],
       ];
-  return `<h2 class="dp-section-title">${inst ? "Ringkasan institut" : "Ringkasan"}</h2>${hero(inst ? "dash-05" : "dash-01", inst ? p.name || "Institut Memandu" : "Selamat kembali, " + (data.user?.name || "Instructor"), inst ? "Urus profil, instructor dan program institut anda." : "Urus profil dan perkembangan permohonan anda.")}<div class="dp-stats">${metrics.map(([ic, l, v]) => stat(ic, l, v)).join("")}</div><div class="dp-columns"><section class="d-card"><h2>${inst ? "Tindakan diperlukan" : "Tindakan anda"}</h2><div class="d-notice">${pending.length ? "Permohonan anda sedang disemak." : data.profile ? "Profil awam anda telah diterbitkan." : "Lengkapkan profil anda untuk semakan."}</div><div class="d-actions left">${link(root(role) + "/" + (inst ? "instructor" : "profil"), inst ? "Semak instructor" : "Kemas kini profil", "red")}${link(root(role) + "/status-semakan", "Lihat status")}</div><hr><h2>Aktiviti terkini</h2>${activity(s)}</section>${profileCard(role, data)}</div>${quicklinks(role, quick)}`;
+  return `<h2 class="dp-section-title">${inst ? "Ringkasan institut" : "Ringkasan"}</h2>${hero(inst ? p.name || "Institut Memandu" : "Selamat kembali, " + (data.user?.name || "Instructor"), inst ? "Urus profil dan instructor institut anda." : "Urus profil dan perkembangan permohonan anda.")}<div class="dp-stats">${metrics.map(([ic, l, v]) => stat(ic, l, v)).join("")}</div><div class="dp-columns"><section class="d-card"><h2>${inst ? "Tindakan diperlukan" : "Tindakan anda"}</h2><div class="d-notice">${pending.length ? "Permohonan anda sedang disemak." : p._hidden ? "Profil awam anda disembunyikan." : data.profile ? "Profil awam anda telah diterbitkan." : "Lengkapkan profil anda untuk semakan."}</div><div class="d-actions left">${link(root(role) + "/" + (inst ? "instructor" : "profil"), inst ? "Semak instructor" : "Kemas kini profil", "red")}${link(root(role) + "/status-semakan", "Lihat status")}</div><hr><h2>Aktiviti terkini</h2>${activity(s)}</section>${profileCard(role, data)}</div>${quicklinks(role, quick)}`;
 }
-function chooser(label, type, multiple = false) {
-  return `<label class="d-btn outline dp-choose">${e(label)}<input type="file" data-media="${type}" accept="image/jpeg,image/png,image/webp" ${multiple ? "multiple" : ""}></label>`;
+function chooser(label, type, multiple = false, style = "outline") {
+  return `<label class="d-btn ${style} dp-choose">${e(label)}<input aria-label="${e(label)}" type="file" data-media="${type}" accept="image/jpeg,image/png,image/webp" ${multiple ? "multiple" : ""}></label>`;
 }
+
+function galleryItem(url, caption = "") {
+  return `<figure class="d-card d-gallery-item" data-existing-url="${e(url)}">
+    <div class="dm-gallery-media">${url ? image(url, "Gambar galeri") : '<img alt="Gambar galeri">'}
+      <div class="dm-gallery-order" aria-label="Susun gambar">
+        <button type="button" data-move-media="up" aria-label="Alih gambar ke kiri">←</button>
+        <button type="button" data-move-media="down" aria-label="Alih gambar ke kanan">→</button>
+      </div>
+    </div>
+    <label class="d-field"><b>Kapsyen gambar</b><input data-gallery-caption maxlength="240" value="${e(caption)}" placeholder="Kapsyen gambar"></label>
+    <div class="dm-gallery-item-actions">${chooser("Ganti gambar", "replace", false, "dm-gallery-replace")}
+      <button class="d-btn dm-gallery-delete" type="button" data-remove-media aria-label="Buang gambar">✕</button>
+    </div>
+  </figure>`;
+}
+
 export function galleryPanel(role, data) {
-  const inst = role === "institut",
-    p = profile(data),
-    existing = Array.isArray(p.gallery) ? p.gallery : [],
-    demo = data.demo;
-  const label = inst ? "Galeri institut" : "Galeri pembelajaran",
-    sample = inst
-      ? ["institute-car", "institute-pair", "institute-track"]
-      : ["profile-lesson", "profile-car", "profile-coaching"];
-  const photos = existing.length ? existing : demo ? sample.map(arts) : [];
-  const src = p.photo || (demo ? arts(inst ? "institute-logo" : "daniel") : "");
-  const top = `<section class="d-card dp-gallery-head"><div>${src ? image(src, inst ? "Logo institut" : "Foto profil", "dp-thumb") : icon(inst ? "institute" : "person")}</div><div><h2>${inst ? "Logo institut" : "Foto profil"}</h2><p>Gambar yang dipaparkan pada profil anda.</p>${chooser(inst ? "Tukar logo" : "Tukar foto", "profile_photo")}</div></section>`;
-  const secondary = inst
-    ? `<section class="d-card dp-gallery-head"><div>${photos[0] ? image(typeof photos[0] === "string" ? photos[0] : photos[0].url, "Gambar utama institut", "dp-thumb") : icon("image")}</div><div><h2>Gambar utama</h2><p>Gambar yang mewakili aktiviti institut anda.</p><a class="d-btn outline" href="#muat-naik-galeri">Tambah gambar</a></div></section>`
-    : "";
-  return `<div data-gallery-panel>${hero(inst ? "dash-07" : "dash-03", inst ? "Logo, foto & galeri" : "Foto & galeri", inst ? "Perkenalkan suasana dan kemudahan institut anda." : "Urus gambar yang dipaparkan pada profil anda.")}<div class="dp-gallery-heads ${inst ? "dp-two" : ""}">${top}${secondary}</div><section class="d-card"><h2>${label}</h2><div class="d-gallery-preview dp-gallery">${photos
-    .map((record, i) => {
-      const url = typeof record === "string" ? record : record.url;
-      return `<figure class="d-gallery-item" data-existing-url="${e(url)}">${image(url, "Gambar galeri " + (i + 1))}<label class="d-field"><b>Kapsyen gambar</b><input data-gallery-caption value="${e((typeof record === "object" && record.caption) || p.galleryCaptions?.[url] || "")}" placeholder="Kapsyen gambar"></label><div class="dp-gallery-actions"><button type="button" class="d-btn outline" data-move-media="up" aria-label="Alih gambar ke kiri">←</button><button type="button" class="d-btn outline" data-move-media="down" aria-label="Alih gambar ke kanan">→</button></div><button class="d-btn outline" type="button" data-remove-media>Buang gambar</button></figure>`;
-    })
-    .join(
-      "",
-    )}</div><div id="muat-naik-galeri" class="d-upload">${icon("image")}<strong>Tambah gambar ke galeri</strong><small>JPG, PNG atau WebP, maksimum 2 MB setiap gambar.</small>${chooser("Pilih gambar", "gallery", true)}</div><div class="d-actions"><p class="d-feedback" aria-live="polite"></p><button class="d-btn outline" data-save-media data-status="draft">Simpan draf</button><button class="d-btn red" data-save-media data-status="semakan">Hantar untuk semakan</button></div></section></div>`;
+  const institute = role === "institut",
+    p = profile(data);
+  const latest = rows(data).find(
+    (row) =>
+      row.kind === "media" && (!row.user_id || row.user_id === data.user?.id),
+  );
+  const edit =
+    latest && ["draft", "pembetulan"].includes(latest.status) ? latest : null;
+  const photos =
+    edit?.payload?.galleryOrder || (Array.isArray(p.gallery) ? p.gallery : []);
+  const priorPhoto = edit?.payload?.images?.findLast(
+    (item) => item.type === "profile_photo",
+  )?.url;
+  const src =
+    priorPhoto || (data.demo && institute ? p.galleryLogo || p.photo : p.photo);
+  const first = photos[0];
+  const firstUrl = typeof first === "string" ? first : first?.url;
+  const label = institute ? "Galeri institut" : "Galeri pembelajaran";
+  const title = institute ? "Logo, foto & galeri" : "Foto & galeri";
+  const feature = (heading, text, url, control, attr) =>
+    `<section class="d-card dm-gallery-feature"><h2>${heading}</h2><div ${attr} class="dm-gallery-feature-art">${url ? image(url, heading) : icon(institute ? "institute" : "person")}</div><div><p>${text}</p>${control}</div></section>`;
+  return `<div data-gallery-panel class="dm-gallery-panel ${institute ? "dm-gallery-institute" : "dm-gallery-instructor"}" ${edit ? 'data-id="' + e(edit.id) + '"' : ""} ${priorPhoto ? 'data-prior-photo="' + e(priorPhoto) + '"' : ""}>
+    <div class="d-hero dp-hero"><div><h1>${title}</h1><p>${institute ? "Perkenalkan suasana dan kemudahan institut anda." : "Urus gambar yang dipaparkan pada profil anda."}</p><i></i></div><img src="/media/branded-axia.webp" alt="">${!institute ? '<a class="d-btn red" href="#muat-naik-galeri">＋ Tambah gambar</a>' : ""}</div>
+    <div class="dm-gallery-features">${feature(institute ? "Logo institut" : "Foto profil", institute ? "Logo institut anda dipaparkan pada profil awam institut." : "Gambar utama profil anda.", src, chooser(institute ? "Tukar logo" : "Tukar foto", "profile_photo", false, institute ? "red" : "outline"), "data-profile-photo")}
+    ${institute ? feature("Gambar utama", "Gambar utama mewakili institut anda pada profil awam.", firstUrl, chooser("Tukar gambar", "replace_primary", false, "red"), "data-gallery-primary") : ""}</div>
+    <section class="dm-gallery-section ${institute ? "d-card" : ""}"><div class="dm-gallery-heading"><h2>${label}</h2><span class="dm-chips"><span data-gallery-count>${photos.length} gambar</span></span></div>
+    <div class="d-gallery-preview dp-gallery">${photos
+      .map((record) => {
+        const url = typeof record === "string" ? record : record.url;
+        const caption =
+          (typeof record === "object" && record.caption) ||
+          p.galleryCaptions?.[url] ||
+          "";
+        return galleryItem(url, caption);
+      })
+      .join("")}</div>
+    <template data-gallery-template>${galleryItem("")}</template>
+    <div id="muat-naik-galeri" class="d-upload dm-gallery-drop">${icon("image")}<div><strong>${institute ? "Tambah gambar institut" : "Seret gambar ke sini"}</strong><small>JPG, PNG atau WebP, maksimum 2 MB setiap gambar.</small></div>${chooser("Pilih gambar", "gallery", true, institute ? "red" : "outline")}</div>
+    <div class="dm-gallery-footer"><div class="d-actions"><button class="d-btn outline" data-save-media data-status="draft">Simpan draf</button><button class="d-btn red" data-save-media data-status="semakan">${institute ? "Hantar perubahan" : "Hantar perubahan untuk semakan"}</button></div><p class="dm-soft-note">${icon("help")} ${[true, "true"].includes(p._hidden) ? "Profil ini disembunyikan daripada direktori awam." : "Gambar baharu dipaparkan selepas semakan."}</p></div>
+    <p class="d-feedback" aria-live="polite"></p></section></div>`;
 }
 function programList(data) {
   const programs = rows(data).filter((x) => x.kind === "program");
@@ -242,7 +292,7 @@ export function promotionListPanel(
 ) {
   const filter = url.searchParams.get("status") || "",
     items = programList(data).filter((x) => !filter || x.status === filter);
-  return `${hero("dash-09", "Promosi & program", "Urus hebahan institut dan program anda.")}<div class="dp-toolbar"><nav class="d-tabs" aria-label="Status promosi">${[
+  return `${hero("Promosi & program", "Urus hebahan institut dan program anda.")}<div class="dp-toolbar"><nav class="d-tabs" aria-label="Status promosi">${[
     ["", "Semua"],
     ["draft", "Draf"],
     ["semakan", "Dalam semakan"],
@@ -263,5 +313,5 @@ export function promotionFormPanel(data, url) {
     data.demo && (!p.poster || p.poster === arts("promo-intake"))
       ? arts("promo-cover")
       : p.poster || "";
-  return `${hero("dash-10", "Tambah promosi / program", "Cipta atau kemas kini hebahan institut anda.")}<div class="dp-columns"><form class="d-card d-form" data-submit-kind="program" ${record ? `data-id="${e(record.id)}"` : ""}><div class="d-fields">${input("title", "Tajuk", "text", true)}<label class="d-field wide"><b>Kategori</b><select name="type">${["Promosi IM", "Program institut", "Program khas kerajaan"].map((v) => `<option ${v === p.type ? "selected" : ""}>${v}</option>`).join("")}</select></label><label class="d-field wide"><b>Penerangan</b><textarea name="description">${e(p.description || "")}</textarea></label>${input("start", "Tarikh mula", "date")}${input("end", "Tarikh tamat", "date")}${input("location", "Lokasi / kaedah", "text", true)}${input("reference", "Pautan rujukan", "url", true)}${input("contact", "Maklumat hubungan", "text", true)}<label class="d-field wide"><b>Poster</b><input type="file" accept="image/png,image/jpeg,image/webp" data-poster></label><input type="hidden" name="poster" value="${e(p.poster || "")}"></div><div class="d-actions"><button class="d-btn outline" name="status" value="draft">Simpan draf</button><button class="d-btn red" name="status" value="semakan">Hantar untuk semakan</button></div><p class="d-feedback" aria-live="polite"></p></form><section class="d-card dp-poster-preview"><h2>Pratonton hebahan</h2><img data-poster-preview alt="Poster promosi atau program" ${art ? `src="${e(art)}"` : "hidden"}><strong>${e(p.title || "")}</strong></section></div>`;
+  return `${hero("Tambah promosi / program", "Cipta atau kemas kini hebahan institut anda.")}<div class="dp-columns"><form class="d-card d-form" data-submit-kind="program" ${record ? `data-id="${e(record.id)}"` : ""}><div class="d-fields">${input("title", "Tajuk", "text", true)}<label class="d-field wide"><b>Kategori</b><select name="type">${["Promosi IM", "Program institut", "Program khas kerajaan"].map((v) => `<option ${v === p.type ? "selected" : ""}>${v}</option>`).join("")}</select></label><label class="d-field wide"><b>Penerangan</b><textarea name="description">${e(p.description || "")}</textarea></label>${input("start", "Tarikh mula", "date")}${input("end", "Tarikh tamat", "date")}${input("location", "Lokasi / kaedah", "text", true)}${input("reference", "Pautan rujukan", "url", true)}${input("contact", "Maklumat hubungan", "text", true)}<label class="d-field wide"><b>Poster</b><input type="file" accept="image/png,image/jpeg,image/webp" data-poster></label><input type="hidden" name="poster" value="${e(p.poster || "")}"></div><div class="d-actions"><button class="d-btn outline" name="status" value="draft">Simpan draf</button><button class="d-btn red" name="status" value="semakan">Hantar untuk semakan</button></div><p class="d-feedback" aria-live="polite"></p></form><section class="d-card dp-poster-preview"><h2>Pratonton hebahan</h2><img data-poster-preview alt="Poster promosi atau program" ${art ? `src="${e(art)}"` : "hidden"}><strong>${e(p.title || "")}</strong></section></div>`;
 }

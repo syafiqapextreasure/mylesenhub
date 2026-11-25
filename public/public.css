@@ -1710,3 +1710,34 @@ body:has(.pub-site) {
   .pub-site:has(.pub-access) .pub-brand { flex: 0 0 8rem; }
   .pub-site:has(.pub-access) .pub-back-home { max-width: 9rem; white-space: normal; font-size: .8rem; line-height: 1.2; }
 }
+
+.pub-vehicle {
+  position: relative;
+  grid-area: 1 / 2;
+  align-self: center;
+  width: 100%;
+  aspect-ratio: 2.1;
+  max-height: clamp(13.5rem, 22vw, 22rem);
+  isolation: isolate;
+}
+.pub-vehicle .pub-banner-art {
+  position: absolute;
+  inset: 0 auto 0 4%;
+  width: 73%;
+  height: 100%;
+  max-height: none;
+  z-index: 1;
+  object-fit: contain;
+  object-position: left bottom;
+}
+.pub-vehicle .pub-plate-pair {
+  position: absolute;
+  width: 27%;
+  height: auto;
+  right: 4%;
+  top: 3%;
+  filter: drop-shadow(0 .22rem .23rem rgb(33 57 84 / 24%));
+}
+@media (max-width: 760px) {
+  .pub-vehicle { max-height: 12rem; }
+}

@@ -1,3 +1,4 @@
+@import url("/dashboard-members.css");
 .dp-section-title {
   margin: -0.3rem 0 0.75rem;
   font-size: clamp(1.45rem, 2vw, 2.15rem);

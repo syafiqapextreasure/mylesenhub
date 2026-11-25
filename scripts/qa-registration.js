@@ -36,15 +36,12 @@ const journeys = {
       postcode: "81200",
       representative: "Wakil Ujian",
       position: "Wakil",
-      promotionTitle: "Taklimat keselamatan",
-      promotionDescription: "Butiran program",
-      promotionStart: "2026-12-01",
-      promotionEnd: "2026-12-02",
+
     },
     files: {
       logo: "brand",
       gallery: ["profile-car", "amir"],
-      promotionPoster: "daniel",
+
     },
   },
 };
@@ -146,7 +143,7 @@ export async function registrationCases({
     const journey = journeys[role];
     await chooseLocation(page);
     if (role === "institut")
-      await page.getByText("Tambah promosi / program", { exact: true }).click();
+      await expect(page.locator('[name^="promotion"]')).toHaveCount(0);
     await fields(page, {
       email,
       phone: "0120000000",

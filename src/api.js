@@ -1,7 +1,9 @@
+import { promotionsEnabled } from "./features.js";
 import { neon } from "@neondatabase/serverless";
 import { check, input, bytes, clean, json, uuid } from "./security.js";
 import { authAction, getUser } from "./auth.js";
 import { submit, review, setAccess } from "./store.js";
+import { instructorAffiliation, decideAffiliation } from "./affiliations.js";
 const mimeTypes = ["image/png", "image/jpeg", "image/webp"];
 function actualMime(a) {
   if (a.length < 12) return "";
@@ -38,7 +40,7 @@ async function media(req, env, sql, path) {
   check(uuid(id), 404, "Gambar tidak ditemui.");
   const user = await getUser(req, env, sql);
   const [r] =
-    await sql`SELECT mime,encode(bytes,'base64') AS encoded FROM mylesenhub.media m WHERE id=${id} AND (user_id=${user?.id || ""} OR ${user?.role === "admin"} OR EXISTS(SELECT 1 FROM mylesenhub.listings l WHERE l.user_id=m.user_id AND ((l.payload->>'photo')=${path} OR (l.payload->>'promotionPoster')=${path} OR (l.payload->>'poster')=${path} OR (l.payload->'gallery') ? ${path})))`;
+    await sql`SELECT mime,encode(bytes,'base64') AS encoded FROM mylesenhub.media m WHERE id=${id} AND (user_id=${user?.id || ""} OR ${user?.role === "admin"} OR EXISTS(SELECT 1 FROM mylesenhub.listings l WHERE l.user_id=m.user_id AND coalesce(l.payload->>'_hidden','false')<>'true' AND (${promotionsEnabled} OR l.kind<>'program') AND ((l.payload->>'photo')=${path} OR (${promotionsEnabled} AND ((l.payload->>'promotionPoster')=${path} OR (l.payload->>'poster')=${path})) OR (l.payload->'gallery') ? ${path})))`;
   check(r, 404, "Gambar tidak ditemui.");
   return new Response(
     Uint8Array.from(atob(r.encoded), (c) => c.charCodeAt(0)),
@@ -112,16 +114,53 @@ export async function api(req, env, path) {
     );
   else if (path === "/api/directory") {
     check(
-      user.role === "admin" && b.action === "unpublish",
+      user.role === "admin" && ["unpublish", "publish"].includes(b.action),
       403,
       "Akses admin diperlukan.",
     );
-    const removed =
-      await sql`DELETE FROM mylesenhub.listings WHERE id=${clean(b.id)} RETURNING id`;
-    check(removed.length, 404, "Rekod tidak ditemui.");
-    result = { message: "Paparan awam ditarik balik." };
+    const changed =
+      await sql`WITH changed AS (UPDATE mylesenhub.listings SET payload=jsonb_set(payload, '{_hidden}', to_jsonb(${b.action === "unpublish"}::boolean)),updated_at=now() WHERE id=${clean(b.id)} AND (${promotionsEnabled} OR kind<>'program') RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},${"directory_" + b.action},id FROM changed RETURNING target_id`;
+    check(changed.length, 404, "Rekod tidak ditemui.");
+    result = {
+      message:
+        b.action === "unpublish"
+          ? "Paparan awam disembunyikan."
+          : "Paparan awam diterbitkan semula.",
+    };
+  } else if (path === "/api/review-note") {
+    check(user.role === "admin", 403, "Akses admin diperlukan.");
+    check(uuid(b.id), 400, "Permohonan tidak sah.");
+    const changed =
+      await sql`WITH changed AS (UPDATE mylesenhub.submissions SET internal_note=${clean(b.note, 3000)},updated_at=now() WHERE id=${b.id} AND (${promotionsEnabled} OR kind<>'program') RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},'review_note',id::text FROM changed RETURNING target_id`;
+    check(changed.length, 404, "Permohonan tidak ditemui.");
+    result = { message: "Nota dalaman disimpan." };
+  } else if (path === "/api/representative") {
+    check(
+      user.role === "admin" && ["verify", "revoke"].includes(b.action),
+      403,
+      "Akses admin diperlukan.",
+    );
+    if (b.action === "verify")
+      check(
+        b.identityChecked === true && b.authorityChecked === true,
+        400,
+        "Sahkan semakan identiti dan kebenaran wakil.",
+      );
+    const changed =
+      await sql`WITH changed AS (UPDATE mylesenhub.accounts SET representative_verified=${b.action === "verify"} WHERE id=${clean(b.userId)} AND role='institut' RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},${"representative_" + b.action},id FROM changed RETURNING target_id`;
+    check(changed.length, 404, "Wakil institut tidak ditemui.");
+    result = {
+      message:
+        b.action === "verify"
+          ? "Wakil disahkan."
+          : "Pengesahan wakil ditarik balik.",
+    };
   } else if (path === "/api/review") result = await review(sql, user, b);
   else if (path === "/api/access") result = await setAccess(sql, user, b);
+  else if (path === "/api/affiliation/request")
+    result = await instructorAffiliation(sql, user, b);
+  else if (path === "/api/affiliation/decision")
+    result = await decideAffiliation(sql, user, b);
   else check(false, 404, "Halaman tidak ditemui.");
   return json({ ok: true, ...result });
 }
