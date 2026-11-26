@@ -434,7 +434,6 @@ const mainSearch = (data, url) => {
         esc([item.district, item.state].filter(Boolean).join(", ")) +
         "</p>" +
         (item.demo && !sampleOnly ? pill("Profil contoh") : "") +
-        (item.stakeholderPreview ? pill("Simulasi prapelancaran") : "") +
         button(
           "Lihat profil",
           "/instructor/" + encodeURIComponent(item.slug) + demoSuffix,
