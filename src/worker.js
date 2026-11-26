@@ -7,6 +7,7 @@ import { catalog, dashboardData } from "./store.js";
 import { api } from "./api.js";
 import { escapeHtml as e, json, check } from "./security.js";
 import { demoInstructors, demoInstitutes } from "./demo.js";
+import { instructorResume } from "./instructor-resume.js";
 const pages = {
   "/": [
     "Cari instructor memandu di Johor & Melaka",
@@ -34,7 +35,7 @@ const pages = {
   ],
   "/daftar-institut": [
     "Daftar Institut Memandu",
-    "Daftar profil institut memandu, lokasi, galeri dan maklumat hubungan anda.",
+    "Daftarkan nama dan alamat institut memandu anda. Tetapkan pin lokasi untuk memudahkan bakal pemandu mencari institut.",
   ],
   "/login": ["Log masuk", "Akses dashboard MyLesenHub anda."],
   "/signup": ["Daftar akaun", "Buka akaun MyLesenHub."],
@@ -85,7 +86,7 @@ function document(body, options) {
     (dash ? '<link rel="stylesheet" href="/dashboard-shell.css"><link rel="stylesheet" href="/dashboard-admin.css">' : publicPageStyles(path)) +
     '<script src="/' +
     css +
-    '.js" defer></script>' +
+    '.js" defer></script><script src="/location-picker.js" defer></script>' +
     (jsonld
       ? '<script type="application/ld+json">' +
         JSON.stringify(jsonld).replace(/</g, "\\u003c") +
@@ -101,10 +102,11 @@ function pageHeaders() {
     "content-type": "text/html; charset=utf-8",
     "cache-control": "private, no-store",
     "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "geolocation=(self)",
     "x-content-type-options": "nosniff",
     "x-frame-options": "DENY",
     "content-security-policy":
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://photon.komoot.io; frame-src https://maps.google.com https://www.google.com; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   };
 }
 async function serve(req, env) {
@@ -142,7 +144,9 @@ async function serve(req, env) {
             "/lupa-kata-laluan",
           ].includes(p),
       ),
-      ...listing.instructors.map((r) => "/instructor/" + r.slug),
+      ...listing.instructors
+        .filter((item) => !item.stakeholderPreview)
+        .map((item) => "/instructor/" + item.slug),
     ];
     return new Response(
       '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
@@ -154,14 +158,37 @@ async function serve(req, env) {
     );
   }
   const sql = env.DATABASE_URL ? neon(env.DATABASE_URL) : null;
+  const example = url.searchParams.get("contoh") === "1";
+  const resumeRoute = path.match(/^\/instructor\/([^/]+)\/resume\.pdf$/);
+  if (resumeRoute) {
+    const directory = example
+      ? { instructors: demoInstructors, institutes: demoInstitutes }
+      : sql ? await catalog(sql) : { instructors: [], institutes: [] };
+    const person = directory.instructors.find(
+      (entry) => encodeURIComponent(entry.slug) === resumeRoute[1],
+    );
+    if (!person) return new Response(req.method === "HEAD" ? null : "Profil tidak ditemui.", {
+      status: 404,
+      headers: { "cache-control": "no-store" },
+    });
+    return new Response(
+      req.method === "HEAD" ? null : await instructorResume(person, directory.institutes, origin, env),
+      { headers: {
+        "content-type": "application/pdf",
+        "content-disposition": 'attachment; filename="mylesenhub-resume-' + encodeURIComponent(person.slug) + '.pdf"',
+        "cache-control": "private, no-store",
+        "x-content-type-options": "nosniff",
+        "x-robots-tag": "noindex",
+      } },
+    );
+  }
   const user = sql ? await getUser(req, env, sql) : null,
     dash = path === "/dashboard" || path.startsWith("/dashboard/");
   let data = { user, instructors: [], institutes: [], programs: [] },
     body,
     title = pages[path]?.[0] || "MyLesenHub",
     description = pages[path]?.[1] || "",
-    schema;
-  const example = url.searchParams.get("contoh") === "1";
+    schema, previewProfile = false;
   if (dash) {
     if (!user)
       return Response.redirect(
@@ -197,7 +224,7 @@ async function serve(req, env) {
         });
       else if (sql) Object.assign(data, await catalog(sql));
     }
-    const person = path.startsWith("/instructor/")
+    const person = /^\/instructor\/[^/]+$/.test(path)
       ? data.instructors.find((i) => i.slug === path.split("/")[2])
       : null;
     body =
@@ -205,10 +232,11 @@ async function serve(req, env) {
         ? null
         : renderPublic(path, url, data);
     if (person) {
+      previewProfile = person.stakeholderPreview === true;
       title = person.name + " • Instructor memandu " + person.district;
       description = person.bio || title;
     }
-    if (body && !example) {
+    if (body && !example && !previewProfile) {
       const organization = {
         "@type": "Organization",
         name: "MyLesenHub",
@@ -260,6 +288,7 @@ async function serve(req, env) {
             !found ||
             dash ||
             example ||
+            previewProfile ||
             [
               "/login",
               "/signup",

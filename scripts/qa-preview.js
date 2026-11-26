@@ -215,7 +215,7 @@ http
             : mod.publicPageStyles(p)) +
           '<script defer src="/' +
           skin +
-          '.js"></script></head><body>' +
+          '.js"></script><script defer src="/location-picker.js"></script></head><body>' +
           body +
           "</body></html>",
       );

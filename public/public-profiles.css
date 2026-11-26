@@ -45,6 +45,56 @@
   min-height: 44px;
 }
 
+.pub-profile-page .pub-profile-side .pub-profile-resume {
+  gap: .5rem;
+  margin-top: .75rem;
+  min-height: 44px;
+}
+
+.pub-profile-institute {
+  display: flex;
+  align-items: flex-start;
+  gap: .9rem;
+  margin-top: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  background: linear-gradient(135deg, #f0f8ff, #fff 75%);
+  overflow-wrap: anywhere;
+}
+
+.pub-profile-institute .pub-round {
+  flex: none;
+  color: #14528b;
+  background: #dcefff;
+}
+
+.pub-profile-institute h3 {
+  margin: 0 0 .45rem;
+}
+
+.pub-profile-institute :is(address, p) {
+  margin: .25rem 0 0;
+  color: #435472;
+  font-style: normal;
+  white-space: pre-line;
+}
+
+.pub-profile-institute .pub-btn {
+  gap: .45rem;
+  margin-top: .85rem;
+  min-height: 44px;
+}
+
+.pub-profile-institute .pub-btn svg,
+.pub-profile-resume svg {
+  width: 1.1em;
+  flex: none;
+}
+
+.pub-profile-page :is(.pub-profile-side h2, .pub-profile-side p, .pub-profile-details dd, .pub-profile-bio, .pub-gallery figcaption) {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
 .pub-profile-page .pub-strip > .pub-round {
   border-radius: 0.65rem;
   background: #ffffffd9;
@@ -106,6 +156,12 @@
 @media (max-width: 760px) {
   .pub-profile-page .pub-profile-details dl div {
     grid-template-columns: minmax(7rem, 0.7fr) minmax(0, 1fr);
+  }
+
+  .pub-profile-page .pub-profile-side .pub-profile-resume {
+    display: inline-flex;
+    grid-column: 1 / -1;
+    justify-self: stretch;
   }
 }
 .pub-home-page .pub-home-hero {

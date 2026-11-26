@@ -18,6 +18,9 @@ function profilePayload(raw, kind) {
     "state",
     "district",
     "institute",
+    "instituteId",
+    "latitude",
+    "longitude",
     "languages",
     "experience",
     "other",
@@ -82,14 +85,17 @@ function publicProfile(row) {
             "address",
             "postcode",
             "maps",
+            "latitude",
+            "longitude",
             "classes",
             ...(promotionsEnabled ? promotionFields : []),
           ]
-        : ["institute", "languages", "spim", "experience", "other"];
+        : ["institute", "instituteId", "languages", "spim", "experience", "other"];
 
   allowed.push("galleryCaptions");
   if (row.kind === "program") allowed.push("location", "reference");
   for (const k of allowed) if (p[k] !== undefined) out[k] = p[k];
+  if (p.stakeholderPreview === true) out.stakeholderPreview = true;
   if (row.kind === "instructor") out.spim = teachingClasses(p);
   return out;
 }
@@ -103,9 +109,15 @@ export async function catalog(sql, includeHidden = false) {
         ...publicProfile(r),
         ...(includeHidden ? { hidden: r.payload._hidden === true } : {}),
       }));
+  const institutes = group("institut");
+  const instituteNames = new Map(institutes.map((item) => [item.id, item.name]));
+  const instructors = group("instructor").map((person) => ({
+    ...person,
+    institute: instituteNames.get(person.instituteId) ?? person.institute,
+  }));
   return {
-    instructors: group("instructor"),
-    institutes: group("institut"),
+    instructors,
+    institutes,
     programs: promotionsEnabled ? group("program") : [],
   };
 }
@@ -221,6 +233,19 @@ function normalise(kind, raw) {
     delete payload.poster;
   return payload;
 }
+async function resolveInstitute(sql, p) {
+  let rows = [];
+  if (p.instituteId) rows = await sql`SELECT id,payload->>'name' AS name FROM mylesenhub.listings WHERE id=${p.instituteId} AND kind='institut' AND coalesce(payload->>'_hidden','false')<>'true'`;
+  else if (p.institute) rows = await sql`SELECT id,payload->>'name' AS name FROM mylesenhub.listings WHERE kind='institut' AND coalesce(payload->>'_hidden','false')<>'true' AND lower(trim(payload->>'name'))=lower(trim(${p.institute}))`;
+  check(rows.length === 1, 400, "Pilih satu institut yang diterbitkan.");
+  p.instituteId = rows[0].id;
+  p.institute = rows[0].name;
+}
+function validateInstituteLocation(p) {
+  const lat = Number(p.latitude), lng = Number(p.longitude);
+  check(p.name && p.address && p.latitude !== "" && p.longitude !== "" && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180, 400, "Isi nama, alamat dan koordinat lokasi institut yang sah.");
+  p.maps = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
 export async function submit(sql, u, body, registrationId) {
   const { kind, status = "semakan" } = body;
   if (!promotionsEnabled) {
@@ -247,7 +272,7 @@ export async function submit(sql, u, body, registrationId) {
     check(uuid(registrationId), 400, "Rujukan pendaftaran tidak sah.");
   const p = normalise(kind, body.payload || {});
   if (status === "semakan") {
-    if (["instructor", "institut"].includes(kind))
+    if (kind === "instructor")
       check(
         p.name && ["Johor", "Melaka"].includes(p.state) && p.district,
         400,
@@ -290,12 +315,14 @@ export async function submit(sql, u, body, registrationId) {
           (!p[key] || (Array.isArray(p[key]) && !p[key].length))
         )
           p[key] = old[key];
-      if (old.instituteOwner) {
-        p.instituteOwner = old.instituteOwner;
-        p.institute = old.institute;
-      }
+      if (p.instituteId && p.instituteId !== old.instituteId) delete p.instituteOwner;
     }
   }
+  if (status === "semakan" && kind === "instructor") {
+    check(p.instituteId, 400, "Pilih satu institut yang diterbitkan.");
+    await resolveInstitute(sql, p);
+  }
+  if (status === "semakan" && kind === "institut") validateInstituteLocation(p);
   const mediaIds = [
     ...new Set(
       JSON.stringify(p).match(/\/api\/media\/[a-fA-F0-9-]{36}/g) || [],
@@ -388,12 +415,14 @@ export async function review(sql, user, b) {
   }
   const p = sub.payload,
     profileKind = ["instructor", "institut"].includes(sub.kind);
+  if (sub.kind === "instructor") await resolveInstitute(sql, p);
+  if (sub.kind === "institut") validateInstituteLocation(p);
   if (profileKind || sub.kind === "program") {
     const stableId = profileKind
       ? sub.kind + "-" + sub.user_id
       : p.listingId || sub.id;
     const r =
-      await sql`WITH approved AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' RETURNING user_id,kind,payload), published AS (
+      await sql`WITH approved AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},payload=${JSON.stringify(p)}::jsonb,updated_at=now() WHERE id=${b.id} AND status='pengesahan' AND (${sub.kind !== 'instructor'} OR EXISTS (SELECT 1 FROM mylesenhub.listings org WHERE org.id=${p.instituteId || ''} AND org.kind='institut' AND coalesce(org.payload->>'_hidden','false')<>'true')) RETURNING user_id,kind,payload), published AS (
  INSERT INTO mylesenhub.listings AS l(id,user_id,kind,payload) SELECT ${stableId},user_id,kind,payload FROM approved ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=now() WHERE l.user_id=excluded.user_id RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},'review_publish',${b.id}::text FROM published RETURNING target_id`;
     check(r.length, 409, "Penerbitan tidak tersedia.");
   } else if (sub.kind === "media") {
@@ -416,8 +445,8 @@ export async function review(sql, user, b) {
   } else if (sub.kind === "affiliation") {
     const target = p.instructorId;
     const r =
-      await sql`WITH org AS (SELECT payload->>'name' AS name FROM mylesenhub.listings WHERE user_id=${sub.user_id} AND kind='institut'),
- linked AS (UPDATE mylesenhub.listings SET payload=CASE WHEN ${p.action}='link' THEN payload || jsonb_build_object('instituteOwner',${sub.user_id}::text,'institute',(SELECT name FROM org)) ELSE payload-'instituteOwner'-'institute' END,updated_at=now() WHERE id=${target} AND kind='instructor' AND EXISTS(SELECT 1 FROM org) AND ((${p.action}='link' AND COALESCE(payload->>'instituteOwner','') IN ('',${sub.user_id})) OR (${p.action}='unlink' AND payload->>'instituteOwner'=${sub.user_id})) AND EXISTS(SELECT 1 FROM mylesenhub.submissions WHERE id=${b.id} AND status='pengesahan' FOR UPDATE) RETURNING id)
+      await sql`WITH org AS (SELECT id,payload->>'name' AS name FROM mylesenhub.listings WHERE user_id=${sub.user_id} AND kind='institut' AND coalesce(payload->>'_hidden','false')<>'true'),
+ linked AS (UPDATE mylesenhub.listings SET payload=CASE WHEN ${p.action}='link' THEN payload || jsonb_build_object('instituteOwner',${sub.user_id}::text,'institute',(SELECT name FROM org),'instituteId',(SELECT id FROM org)) ELSE payload-'instituteOwner' END,updated_at=now() WHERE id=${target} AND kind='instructor' AND EXISTS(SELECT 1 FROM org) AND ((${p.action}='link' AND COALESCE(payload->>'instituteOwner','') IN ('',${sub.user_id})) OR (${p.action}='unlink' AND payload->>'instituteOwner'=${sub.user_id})) AND EXISTS(SELECT 1 FROM mylesenhub.submissions WHERE id=${b.id} AND status='pengesahan' FOR UPDATE) RETURNING id)
  , published AS (UPDATE mylesenhub.submissions SET status='diterbitkan',note=${note},updated_at=now() WHERE id=${b.id} AND status='pengesahan' AND EXISTS(SELECT 1 FROM linked) RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${user.id},'review_publish',id::text FROM published RETURNING target_id`;
     check(
       r.length,
@@ -438,7 +467,7 @@ export async function setAccess(sql, u, b) {
   );
   check(appRoles.includes(b.role), 400, "Pilih peranan yang sah.");
   const r =
-    await sql`WITH changed AS (UPDATE mylesenhub.accounts SET role=${b.role},representative_verified=CASE WHEN role=${b.role} THEN representative_verified ELSE false END WHERE id=${clean(b.userId)} RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${u.id},'access_change',id FROM changed RETURNING target_id`;
+    await sql`WITH changed AS (UPDATE mylesenhub.accounts SET role=${b.role},pending_admin_email=NULL,representative_verified=CASE WHEN role=${b.role} THEN representative_verified ELSE false END WHERE id=${clean(b.userId)} RETURNING id) INSERT INTO mylesenhub.admin_audit(actor_id,action,target_id) SELECT ${u.id},'access_change',id FROM changed RETURNING target_id`;
   check(r.length, 404, "Akaun tidak ditemui.");
   return { message: "Akses dikemas kini." };
 }

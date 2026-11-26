@@ -6,6 +6,9 @@ import { registrationCases } from "./qa-registration.js";
 
 const origin = process.env.MLH_QA_ORIGIN || "http://localhost:8788";
 const registrationOnly = process.argv.includes("--registration");
+if (!registrationOnly && !process.env.NEON_BRANCH?.includes("acceptance")) {
+  throw new Error("Load the dedicated acceptance branch environment before running the live registration tests.");
+}
 const browser = await chromium.launch({
   headless: true,
   executablePath:
@@ -68,11 +71,11 @@ try {
       await chooseLocation(page);
       await page.getByRole("button", { name: "Cari Instructor" }).click();
       await expect(page).toHaveURL(/state=Johor.*district=Johor\+Bahru/);
-      // The sample-directory link is offered when the live filter has no matches.
       await page.locator("[name=name]").fill("QA-" + crypto.randomUUID());
       await page.getByRole("button", { name: "Cari Instructor" }).click();
       await expect(page.getByRole("heading", { name: "Tiada profil untuk carian ini" })).toBeVisible();
-      await page.getByRole("link", { name: "Terokai profil contoh" }).click();
+      await expect(page.getByRole("link", { name: "Terokai profil contoh" })).toHaveCount(0);
+      await page.goto(origin + "/cari-instructor?contoh=1");
       await expect(page.locator(".pub-instructor-card")).toHaveCount(6);
       const licence = page.getByRole("combobox", { name: "Kelas Lesen", exact: true });
       assert.deepEqual(await licence.locator("option").allTextContents(), [
@@ -167,12 +170,11 @@ try {
   );
   await registrationCases({ test, fields, chooseLocation, chooseClass });
   await test(
-    "Institut registration and gallery with promotions disabled",
+    "Institute registration submits its name, address and pin",
     "Authenticated fixture UI with stubbed writes",
     async (page) => {
       const path = "/daftar-institut";
       let submitted;
-      let uploads = 0;
       await page.route(origin + path, async (route) => {
         const user = { id: "qa", role: "institut" };
         const html =
@@ -180,47 +182,33 @@ try {
           renderPublic(path, new URL(origin + path), { user });
         await route.fulfill({ contentType: "text/html", body: html });
       });
-      await client(page, "/api/media", async (request) => {
-        assert(request.postDataBuffer().length > 0);
-        return { ok: true, url: "/api/media/mock-" + ++uploads };
-      });
       await client(page, "/api/register/institut", async (request) => {
         submitted = request.postDataJSON();
         return { ok: true, message: "Maklumat dihantar untuk semakan." };
       });
       await page.goto(origin + path);
-      await chooseLocation(page);
       await fields(page, {
         name: "Institut Ujian",
         address: "Jalan Ujian",
-        postcode: "81200",
-        representative: "Ujian",
-        position: "Wakil",
-        email: "test@example.invalid",
-        phone: "0120000000",
-        bio: "Pengenalan untuk ujian fungsi.",
+        latitude: "1.4927",
+        longitude: "103.7414",
       });
-      await chooseClass(page, "DA");
       await expect(page.locator('[name^="promotion"]')).toHaveCount(0);
-      await page
-        .locator("[name=logo]")
-        .setInputFiles("public/media/brand.webp");
-      await page
-        .locator("[name=gallery]")
-        .setInputFiles("public/media/profile-car.webp");
+      await expect(page.locator('[name=postcode], [name=spim], [name=gallery], [name=representative]')).toHaveCount(0);
 
       await page.locator("[name=consent]").check();
       await page.getByRole("button", { name: "Hantar untuk semakan" }).click();
-      await expect(page.getByRole("status")).toContainText(
+      await expect(page.locator(".pub-status")).toContainText(
         "Maklumat dihantar untuk semakan",
       );
       await expect(
         page.getByRole("link", { name: "Lihat status di dashboard" }),
       ).toBeVisible();
-      assert.equal(uploads, 2);
+      assert.equal(submitted.name, "Institut Ujian");
+      assert.equal(submitted.address, "Jalan Ujian");
+      assert.equal(submitted.latitude, "1.4927");
+      assert.equal(submitted.longitude, "103.7414");
       assert.equal(submitted.promotionTitle, undefined);
-      assert.deepEqual(submitted.spim, ["DA"]);
-      assert.equal(submitted.logo, "/api/media/mock-1");
       assert.equal(submitted.promotionPoster, undefined);
     },
   );
@@ -272,11 +260,11 @@ try {
         displayName: "Cikgu Playwright QA",
         email,
         phone: "0120000000",
-        institute: "Institut Ujian",
         languages: "Melayu",
         experience: "5",
         bio: "Pengenalan untuk ujian fungsi.",
       });
+      await page.locator("select[name=instituteId]").selectOption({ index: 1 });
       await chooseClass(page, "D");
       await page
         .locator("[name=photo]")

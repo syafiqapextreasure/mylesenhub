@@ -69,6 +69,9 @@ async function publish(id) {
   await post("/api/review", { id, action: "verify" }, admin.cookie);
   await post("/api/review", { id, action: "publish" }, admin.cookie);
 }
+const reg = await post("/api/register/institut", { name: "Institut QA " + stamp, address: "Jalan QA, Johor", latitude: "1.5", longitude: "103.7" }, inst.cookie);
+await publish(reg.id);
+const instituteId = "institut-" + inst.id;
 const form = {
   requestId: randomUUID(),
   name: "Cikgu QA " + stamp,
@@ -76,7 +79,7 @@ const form = {
   fullName: "Private QA",
   state: "Johor",
   district: "Johor Bahru",
-  institute: "Institut QA",
+  instituteId,
   spim: ["D", "DA"],
   experience: "5",
   other: "Bimbingan",
@@ -84,6 +87,10 @@ const form = {
   photo: image,
   email: instructor.email,
 };
+await assert.rejects(post("/api/register/institut", { name: "Tiada pin", address: "Jalan QA", latitude: "", longitude: "" }, inst.cookie), /400/);
+await assert.rejects(post("/api/register/instructor", { ...form, requestId: randomUUID(), instituteId: "missing-institute" }, instructor.cookie), /400/);
+await assert.rejects(post("/api/register/instructor", { ...form, requestId: randomUUID(), instituteId: "", institute: "Institut QA" }, instructor.cookie), /400/);
+console.log("PASS missing pin and unlisted or free-text institute are rejected.");
 const registerInstructor = () =>
   post("/api/register/instructor", form, instructor.cookie);
 const [submission, repeated] = await Promise.all([
@@ -100,7 +107,12 @@ console.log(
 const lookup = async () =>
   await (await fetch(origin + "/cari-instructor")).text();
 assert(!(await lookup()).includes(form.name));
+// Exercise an existing legacy application that stored only the institute name.
+await sql`UPDATE mylesenhub.submissions SET payload=(payload-'instituteId') || jsonb_build_object('institute',${"Institut QA " + stamp}::text) WHERE id=${submission.id}`;
 await publish(submission.id);
+const [legacyResolved] = await sql`SELECT payload FROM mylesenhub.listings WHERE id=${"instructor-" + instructor.id}`;
+assert.equal(legacyResolved.payload.instituteId, instituteId);
+console.log("PASS a uniquely matched legacy institute name resolves to a stable listing ID at publication.");
 const replay = await registerInstructor();
 assert.equal(replay.id, submission.id);
 const [persisted] =
@@ -114,17 +126,6 @@ assert.equal((await fetch(origin + image)).status, 200);
 console.log(
   "PASS private image upload, registration, two-step approval, public directory and published image.",
 );
-const reg = await post(
-  "/api/register/institut",
-  {
-    name: "Institut QA " + stamp,
-    state: "Melaka",
-    district: "Jasin",
-    classes: ["D"],
-  },
-  inst.cookie,
-);
-await publish(reg.id);
 for (const route of ["promosi", "promosi-borang"]) {
   const response = await fetch(origin + "/dashboard/institut/" + route, {
     headers: { cookie: inst.cookie },

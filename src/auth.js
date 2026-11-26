@@ -68,7 +68,13 @@ export async function getUser(req, env, sql) {
   if (!res.ok || !data?.user?.id) return null;
   const u = data.user;
   const [account] =
-    await sql`INSERT INTO mylesenhub.accounts(id,name,email) VALUES(${u.id},${u.name || u.email},${u.email}) ON CONFLICT(id) DO UPDATE SET email=excluded.email WHERE mylesenhub.accounts.email<>excluded.email RETURNING id,name,email,role`;
+    await sql`INSERT INTO mylesenhub.accounts AS a (id,name,email) VALUES(${u.id},${u.name || u.email},${u.email})
+      ON CONFLICT(id) DO UPDATE SET
+        role=CASE WHEN ${u.emailVerified === true} AND a.pending_admin_email=lower(excluded.email)
+                  AND lower(a.email)=lower(excluded.email) THEN 'admin' ELSE a.role END,
+        email=excluded.email, pending_admin_email=NULL
+      WHERE a.email<>excluded.email OR (${u.emailVerified === true} AND a.pending_admin_email=lower(excluded.email))
+      RETURNING id,name,email,role`;
   return (
     account ||
     (

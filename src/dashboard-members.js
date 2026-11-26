@@ -1,3 +1,4 @@
+import { locationPicker } from "./location-picker.js";
 import { escapeHtml as e } from "./security.js";
 import { profileLanguages, registeredInstituteNames } from "./form-options.js";
 import { promotionsEnabled } from "./features.js";
@@ -267,17 +268,9 @@ export function memberProfileAction(role, data) {
     : "";
 }
 function instituteFields(p, institutes) {
-  const registered = registeredInstituteNames(institutes);
-  return '<div class="d-field wide dm-institute-picker" data-dm-institute-picker>' +
-    input("institute", "Institut Memandu", p.institute, {
-      required: true, placeholder: "Taip nama institut memandu", attrs: 'maxlength="300"',
-    }) +
-    field("Pilih institut berdaftar",
-      '<select data-registered-institute>' +
-      option("", registered.length ? "Pilih institut" : "Tiada institut berdaftar", p.institute) +
-      registered.map(name => option(name, name, p.institute)).join("") +
-      "</select>") +
-    "</div>";
+  const registered = institutes.filter(item => item.id && !item.demo && !item.hidden);
+  const selected = p.instituteId || (registered.filter(item => item.name === p.institute).length === 1 ? registered.find(item => item.name === p.institute).id : "");
+  return field("Institut Memandu", '<select name="instituteId" required><option value="">' + (registered.length ? "Pilih institut" : "Tiada institut diterbitkan") + '</option>' + registered.map(item => option(item.id, item.name, selected)).join("") + '</select>');
 }
 export function memberProfile(role, data) {
   const inst = role === "institut",
@@ -307,60 +300,9 @@ export function memberProfile(role, data) {
     { ...required, type: "tel", placeholder: "Masukkan nombor telefon" },
   );
   const editingFields = inst
-    ? detailSection(
-        "Maklumat institut",
-        "institute",
+    ? detailSection("Maklumat institut", "institute",
         input("name", "Nama Institut Memandu", p.name, required) +
-          locationFields(p) +
-          input("postcode", "Poskod", p.postcode, {
-            ...required,
-            placeholder: "Masukkan poskod",
-            attrs: 'inputmode="numeric" pattern="[0-9]{5}" maxlength="5"',
-          }) +
-          input("address", "Alamat institut", p.address, {
-            ...required,
-            type: "textarea",
-            wide: true,
-            placeholder: "Alamat penuh institut",
-          }) +
-          classPicker(p, true) +
-          input("maps", "Pautan lokasi", p.maps, {
-            type: "url",
-            placeholder: "Pautan Google Maps",
-          }),
-      ) +
-      detailSection(
-        "Wakil & hubungan",
-        "person",
-        input("representative", "Nama wakil", p.representative, required) +
-          select(
-            "position",
-            "Jawatan",
-            p.position,
-            choices(
-              [
-                "Penyelaras",
-                "Pengurus",
-                "Pentadbir",
-                "Wakil institut",
-                "Lain-lain",
-              ],
-              p.position,
-            ),
-            required,
-          ) +
-          email +
-          phone,
-      ) +
-      detailSection(
-        "Pengenalan institut",
-        "book",
-        input("bio", "Pengenalan ringkas", p.bio, {
-          ...required,
-          wide: true,
-          type: "textarea",
-        }),
-      )
+        input("address", "Alamat institut", p.address, { ...required, type: "textarea", wide: true, placeholder: "Alamat penuh institut" }) + locationPicker(p))
     : detailSection(
         "Maklumat asas",
         "person",

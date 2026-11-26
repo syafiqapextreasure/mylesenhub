@@ -21,7 +21,7 @@ const journeys = {
     fields: {
       fullName: "Ujian Instructor",
       displayName: "Cikgu Ujian",
-      institute: "Institut Ujian",
+      instituteId: "inst-johor",
       languages: "Melayu",
       experience: "5",
       other: "Bimbingan berperingkat",
@@ -33,14 +33,10 @@ const journeys = {
     fields: {
       name: "Institut Ujian",
       address: "Jalan Ujian",
-      postcode: "81200",
-      representative: "Wakil Ujian",
-      position: "Wakil",
+      latitude: "1.5",
+      longitude: "103.7",
     },
-    files: {
-      logo: "brand",
-      gallery: ["profile-car", "amir"],
-    },
+    files: {},
   },
 };
 
@@ -49,7 +45,7 @@ const journeys = {
 async function fixture(
   page,
   role,
-  { failFirst = false, requireVerification = false, registry = false } = {},
+  { failFirst = false, requireVerification = false, registry = true } = {},
 ) {
   const state = {
     signedIn: false,
@@ -80,8 +76,8 @@ async function fixture(
             ...(registry
               ? {
                   institutes: [
-                    { name: "Institut Melaka Berdaftar", state: "Melaka" },
-                    { name: "Institut Johor Berdaftar", state: "Johor" },
+                    { id: "inst-melaka", name: "Institut Melaka Berdaftar", state: "Melaka" },
+                    { id: "inst-johor", name: "Institut Johor Berdaftar", state: "Johor" },
                     { name: "Institut Contoh", demo: true },
                     { name: "Institut Disembunyikan", _hidden: true },
                   { name: "Institut Disembunyikan Katalog", hidden: true },
@@ -158,20 +154,11 @@ export async function registrationCases({
 }) {
   async function completeForm(page, role) {
     const journey = journeys[role];
-    await chooseLocation(page);
-    await expect(page.locator(".pub-class-picker + .pub-spim-help")).toHaveText(
-      "Boleh pilih lebih daripada satu",
-    );
-    if (role === "institut")
-      await expect(page.locator('[name^="promotion"]')).toHaveCount(0);
-    await fields(page, {
-      email,
-      phone: "0120000000",
-      bio: "Pengenalan untuk ujian fungsi.",
-      ...journey.fields,
-    });
-    await chooseClass(page, "D");
-    await chooseClass(page, "DA");
+    if (role === "instructor") {
+      await chooseLocation(page);
+      await fields(page, { email, phone: "0120000000", bio: "Pengenalan untuk ujian fungsi.", ...journey.fields });
+      await chooseClass(page, "D"); await chooseClass(page, "DA");
+    } else await fields(page, journey.fields);
     for (const [name, images] of Object.entries(journey.files)) {
       const files = [images].flat().map(media);
       await page.locator('[name="' + name + '"]').setInputFiles(files);
@@ -179,69 +166,14 @@ export async function registrationCases({
     await page.locator("[name=consent]").check();
   }
 
-  await test(
-    "Registered institutes, free text and legacy draft language",
-    mode,
-    async (page) => {
-      await fixture(page, "instructor", { registry: true });
-      await page.goto(origin + journeys.instructor.path);
-      const language = page.locator("[name=languages]");
-      await expect(language.locator("option")).toHaveText([
-        "Pilih bahasa",
-        "Melayu",
-        "Inggeris",
-        "Cina",
-        "India",
-      ]);
-      const institute = page.locator("[name=institute]");
-      const registered = page.locator("[data-registered-institute]");
-      await expect(page.locator("[name=state]")).toHaveValue("");
-      await expect(registered.locator("option")).toHaveText([
-        "Pilih institut",
-        "Institut Johor Berdaftar",
-        "Institut Melaka Berdaftar",
-      ]);
-      await registered.selectOption("Institut Melaka Berdaftar");
-      await expect(institute).toHaveValue("Institut Melaka Berdaftar");
-      await institute.fill("Institut Tidak Tersenarai");
-      await expect(registered).toHaveValue("");
-      await language.selectOption("Cina");
-      await page.getByRole("button", { name: "Simpan draf" }).click();
-      await expect(page.getByRole("status")).toContainText("Draf disimpan");
-      await page.evaluate(
-        () =>
-          new Promise((resolve, reject) => {
-            const open = indexedDB.open("mylesenhub-public", 1);
-            open.onerror = () => reject(open.error);
-            open.onsuccess = () => {
-              const db = open.result;
-              const tx = db.transaction("drafts", "readwrite");
-              const store = tx.objectStore("drafts");
-              const read = store.get("instructor");
-              read.onsuccess = () => {
-                const draft = read.result;
-                draft.values.languages = "Melayu & Inggeris";
-                store.put(draft, "instructor");
-              };
-              tx.oncomplete = () => {
-                db.close();
-                resolve();
-              };
-              tx.onerror = () => {
-                db.close();
-                reject(tx.error);
-              };
-            };
-          }),
-      );
-      await page.reload();
-      await expect(language).toHaveValue("Melayu & Inggeris");
-      await expect(institute).toHaveValue("Institut Tidak Tersenarai");
-      await expect(registered).toHaveValue("");
-      await language.selectOption("Inggeris");
-      await expect(language).toHaveValue("Inggeris");
-    },
-  );
+  await test("Only published institutes are selectable", mode, async page => {
+    await fixture(page, "instructor");
+    await expect(page.locator("input[name=institute]")).toHaveCount(0);
+    const institute = page.locator("select[name=instituteId]");
+    await expect(institute.locator("option")).toHaveText(["Pilih institut", "Institut Melaka Berdaftar", "Institut Johor Berdaftar"]);
+    await institute.selectOption("inst-johor");
+    await expect(institute).toHaveValue("inst-johor");
+  });
 
   async function signUp(page, role, requireVerification = false) {
     await expect(page).toHaveURL(/\/signup\?/);
@@ -268,10 +200,12 @@ export async function registrationCases({
         name === "experience" ? Number(value) : value,
         name,
       );
-    assert.equal(payload.email, email);
-    assert.equal(payload.district, "Johor Bahru");
-    assert.equal(payload.state, "Johor");
-    assert.deepEqual(payload.spim, ["D", "DA"]);
+    if (role === "instructor") {
+      assert.equal(payload.email, email);
+      assert.equal(payload.district, "Johor Bahru");
+      assert.equal(payload.state, "Johor");
+      assert.deepEqual(payload.spim, ["D", "DA"]);
+    }
     assert.equal(payload.consent, true);
     for (const [name, assets] of Object.entries(journeys[role].files)) {
       const urls = [payload[name]].flat();

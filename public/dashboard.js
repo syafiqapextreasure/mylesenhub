@@ -341,6 +341,7 @@
     });
   }
   function syncMemberLocations(form) {
+    if (!form.elements.state || !form.elements.district) return;
     const state = form.elements.state.value;
     const district = form.elements.district;
     district.disabled = !state;
@@ -352,18 +353,6 @@
   }
   for (const form of document.querySelectorAll("[data-member-profile]"))
     syncMemberLocations(form);
-  for (const picker of document.querySelectorAll("[data-dm-institute-picker]")) {
-    const name = picker.querySelector('[name="institute"]');
-    const directory = picker.querySelector("[data-registered-institute]");
-    directory.addEventListener("change", () => {
-      if (directory.value) name.value = directory.value;
-    });
-    name.addEventListener("input", () => {
-      directory.value = [...directory.options].some(option => option.value === name.value)
-        ? name.value
-        : "";
-    });
-  }
   function refreshClassChips(picker) {
     const selected = picker.querySelectorAll("input:checked");
     const children = Array.from(selected, (input) => {

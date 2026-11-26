@@ -1,6 +1,8 @@
+import { locationPicker } from "./location-picker.js";
 import { promotionsEnabled } from "./features.js";
 import { licenceClasses as classes, teachingClasses } from "./licence-classes.js";
 import { profileLanguages, registeredInstituteNames } from "./form-options.js";
+import { instructorGallery, instituteLocation } from "./public-instructor.js";
 
 const states = {
   Johor: [
@@ -96,6 +98,7 @@ const iconPaths = {
   edit: '<path d="M11 21H4V3h13v8M7 7h7M7 11h5m1 9 1-4 6-6 3 3-6 6z"/>',
   arrow: '<path d="M3 12h17m-7-7 7 7-7 7"/>',
   back: '<path d="M21 12H4m7-7-7 7 7 7"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
   shield: '<path d="m12 2 9 4v6c0 5-6 9-9 10-3-1-9-5-9-10V6zm-4 10 3 3 5-6"/>',
   eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
   send: '<path d="m2 10 20-8-6 20-4-9zm10 3L22 2"/>',
@@ -431,6 +434,7 @@ const mainSearch = (data, url) => {
         esc([item.district, item.state].filter(Boolean).join(", ")) +
         "</p>" +
         (item.demo && !sampleOnly ? pill("Profil contoh") : "") +
+        (item.stakeholderPreview ? pill("Simulasi prapelancaran") : "") +
         button(
           "Lihat profil",
           "/instructor/" + encodeURIComponent(item.slug) + demoSuffix,
@@ -495,9 +499,6 @@ const mainSearch = (data, url) => {
           search + "?state=" + (sampleOnly ? "&contoh=1" : ""),
           "pub-outline",
         ) +
-        (!sampleOnly
-          ? button("Terokai profil contoh", search + "?contoh=1", "pub-outline")
-          : "") +
         "</div>") +
     (cards
       ? '<nav class="pub-pages" aria-label="Halaman hasil">' +
@@ -516,23 +517,38 @@ const mainSearch = (data, url) => {
   );
 };
 const profilePictures = (item) => {
-  return (item.gallery || [])
-    .map((entry) => (typeof entry === "string" ? { url: entry } : entry))
-    .filter((entry) => entry?.url)
+  return instructorGallery(item)
     .map(({ url, alt, caption }, index) => {
-      const description = caption || item.galleryCaptions?.[url];
       return (
         "<figure>" +
-        photo(url, alt || description || "Gambar pembelajaran " + (index + 1)) +
-        (description ? "<figcaption>" + esc(description) + "</figcaption>" : "") +
+        photo(url, alt || caption || "Gambar pembelajaran " + (index + 1)) +
+        (caption ? "<figcaption>" + esc(caption) + "</figcaption>" : "") +
         "</figure>"
       );
     });
 };
-const profile = (item) => {
+const profile = (item, institutes) => {
   const location = [item.district, item.state].filter(Boolean).join(", ");
   const portrait = item.detailPhoto || item.photo;
   const backHref = search + (item.demo ? "?contoh=1" : "");
+  const institute = instituteLocation(item, institutes);
+  const resumeHref = "/instructor/" + encodeURIComponent(item.slug) +
+    "/resume.pdf" + (item.demo ? "?contoh=1" : "");
+  const instituteCard =
+    '<section class="pub-panel pub-profile-institute" aria-labelledby="pub-profile-institute-title">' +
+    '<span class="pub-round">' + icon("pin") + '</span><div>' +
+    '<h3 id="pub-profile-institute-title">Lokasi institut memandu</h3>' +
+    (institute.name ? '<strong>' + esc(institute.name) + '</strong>' : '') +
+    (institute.address
+      ? '<address>' + esc(institute.address) + '</address>'
+      : '<p>' + (item.demo
+        ? "Alamat sebenar tidak tersedia untuk profil contoh."
+        : "Alamat institut belum tersedia.") + '</p>') +
+    (institute.maps
+      ? '<a class="pub-btn pub-outline" target="_blank" rel="noopener noreferrer" href="' +
+        esc(institute.maps) + '">Buka di Google Maps ' + icon("arrow") + '</a>'
+      : '') +
+    '</div></section>';
   const help =
     "<h3>Hubungi " +
     esc(item.name) +
@@ -541,17 +557,17 @@ const profile = (item) => {
   const rows = [
     ["pin", "Negeri", item.state],
     ["map", "Daerah", item.district],
-    ["building", "Institut Memandu", item.institute],
+    ["building", "Institut Memandu", institute.name],
     ["chat", "Bahasa", item.languages],
     ["car", "Kelas SPIM", item.spim],
     [
       "calendar",
-      "Experience",
+      "Pengalaman",
       item.experience != null && item.experience !== ""
         ? String(item.experience).replace(/(?: tahun)?$/, " tahun")
         : "",
     ],
-    ["chat", "Other", item.other],
+    ["chat", "Maklumat tambahan", item.other],
   ].filter(([, , value]) => (Array.isArray(value) ? value.length : value));
   const images = profilePictures(item);
   const details = rows.map(([name, label, value]) =>
@@ -581,14 +597,16 @@ const profile = (item) => {
     "<h2>" +
     esc(item.name) +
     "</h2>" +
-    (item.institute
-      ? '<p class="pub-with-icon">' + icon("building") + esc(item.institute) + "</p>"
+    (institute.name
+      ? '<p class="pub-with-icon">' + icon("building") + esc(institute.name) + "</p>"
       : "") +
     (location
       ? '<p class="pub-with-icon">' + icon("pin") + esc(location) + "</p>"
       : "") +
     "<hr>" +
     help +
+    '<a class="pub-btn pub-outline pub-profile-resume" href="' + esc(resumeHref) +
+    '" download>' + icon("download") + ' Muat turun résumé (PDF)</a>' +
     '<a class="pub-reset pub-with-icon" href="' +
     backHref +
     '">' +
@@ -601,7 +619,7 @@ const profile = (item) => {
     (item.bio ? '<p class="pub-profile-bio">' + esc(item.bio) + "</p>" : "") +
     '<section class="pub-panel pub-profile-details"><h3>Maklumat instructor</h3>' +
     (details ? "<dl>" + details + "</dl>" : "<p>Butiran belum tersedia.</p>") +
-    "</section>" +
+    "</section>" + instituteCard +
     (images.length
       ? '<section class="pub-gallery"><h2>Galeri pembelajaran</h2><div class="pub-panel"><div class="pub-gallery-grid">' +
         images.join("") +
@@ -612,8 +630,8 @@ const profile = (item) => {
     '</div></div><section class="pub-strip"><span class="pub-round">' +
     icon("pin") +
     "</span><div><h3>Belajar memandu bermula dengan instructor yang sesuai.</h3>" +
-    ([item.institute, location].some(Boolean)
-      ? "<p>" + esc([item.institute, location].filter(Boolean).join(" · ")) + "</p>"
+    ([institute.name, location].some(Boolean)
+      ? "<p>" + esc([institute.name, location].filter(Boolean).join(" · ")) + "</p>"
       : "") +
     "</div>" +
     button("Lihat carian lain", backHref, "pub-outline") +
@@ -742,17 +760,18 @@ const classOptions = (label = "Kelas SPIM") =>
     )
     .join("") +
   '</div></details><small class="pub-spim-help" id="pub-spim-help">Boleh pilih lebih daripada satu</small></fieldset>';
-const registrationInstitute = (data) => {
-  const registered = registeredInstituteNames(data.institutes);
-  return '<div class="pub-full pub-institute-picker" data-registration-institute>' +
-    field("Institut Memandu", input("institute", "Taip nama institut memandu", "text", "required maxlength=\"300\"")) +
-    '<label class="pub-field"><span>Pilih institut berdaftar</span>' +
-    '<select data-registered-institute><option value="">' +
-    (registered.length ? "Pilih institut" : "Tiada institut berdaftar") +
-    '</option>' +
-    registered.map((name) => option(name, "")).join("") +
-    "</select></label></div>";
-};
+function registrationInstitute(data) {
+  const schools = data.institutes.filter((item) => item.id && !item.demo && !item.hidden);
+  const prompt = schools.length ? "Pilih institut" : "Tiada institut diterbitkan";
+  const options = schools.map((school) =>
+    '<option value="' + esc(school.id) + '">' + esc(school.name) + '</option>'
+  ).join("");
+  const help = schools.length ? "" : '<small>Institut perlu diterbitkan sebelum anda boleh menghantar permohonan.</small>';
+  return field("Institut Memandu",
+    '<select name="instituteId" required><option value="">' + prompt + '</option>' + options + '</select>' + help,
+    true,
+  );
+}
 const uploads = (name, label, multiple = false) =>
   '<div class="pub-field pub-upload-field"><span>' +
   label +
@@ -789,8 +808,7 @@ const joinAside = (isInstitute) => {
   const details = isInstitute
     ? [
         "Maklumat institut",
-        "Wakil untuk dihubungi",
-        "Logo dan gambar",
+        "Alamat dan pin lokasi",
         ...(promotionsEnabled ? ["Promosi atau program"] : []),
       ]
     : [
@@ -843,79 +861,11 @@ const register = (data, isInstitute) => {
   const logged = Boolean(data.user);
   const role = isInstitute ? "institut" : "instructor";
   const sections = isInstitute
-    ? [
-        formSection(
-          "Maklumat institut",
-          field(
-            "Nama Institut Memandu",
-            input("name", "Nama rasmi institut"),
-            true,
-          ) +
-            locationFields("", "", true) +
-            field(
-              "Alamat institut",
-              textArea("address", "Alamat penuh institut"),
-              true,
-            ) +
-            field(
-              "Poskod",
-              input(
-                "postcode",
-                "Poskod",
-                "text",
-                'required inputmode="numeric" pattern="[0-9]{5}" maxlength="5"',
-              ),
-            ) +
-            classOptions("Kelas ditawarkan") +
-            field(
-              "Pautan lokasi",
-              input("maps", "Pautan Google Maps (pilihan)", "url", ""),
-              true,
-            ),
-        ),
-        formSection(
-          "Wakil &amp; hubungan",
-          field("Nama wakil", input("representative", "Nama untuk dihubungi")) +
-            field("Jawatan", input("position", "Jawatan anda")) +
-            field("E-mel", input("email", "E-mel rasmi institut", "email")) +
-            field(
-              "Nombor telefon",
-              input("phone", "Nombor untuk dihubungi", "tel"),
-            ),
-        ),
-        formSection(
-          "Profil institut",
-          field(
-            "Pengenalan institut",
-            textArea(
-              "bio",
-              "Ceritakan tentang kemudahan dan pembelajaran di institut anda.",
-            ),
-            true,
-          ) +
-            uploads("logo", "Logo institut") +
-            uploads("gallery", "Galeri institut", true),
-        ),
-        promotionsEnabled ? '<section class="pub-form-section"><h3>Promosi &amp; program (pilihan)</h3><div class="pub-promotion"><h4>Promosi IM / Program khas kerajaan</h4><p>Sertakan tajuk, penerangan, tempoh dan poster.</p><details><summary>Tambah promosi / program</summary><div class="pub-fields">' +
-          field(
-            "Tajuk promosi atau program",
-            input("promotionTitle", "Tajuk", "text", ""),
-            true,
-          ) +
-          field(
-            "Penerangan",
-            textArea(
-              "promotionDescription",
-              "Maklumat promosi atau program",
-              "",
-            ),
-            true,
-          ) +
-          field("Tarikh mula", input("promotionStart", "", "date", "")) +
-          field("Tarikh tamat", input("promotionEnd", "", "date", "")) +
-          uploads("promotionPoster", "Poster promosi") +
-          "</div></details></div></section>" : "",
-      ]
+    ? [formSection("Maklumat institut",
+        field("Nama Institut Memandu", input("name", "Nama rasmi institut"), true) +
+        field("Alamat institut", textArea("address", "Alamat penuh institut"), true) +
+        locationPicker(),
+      )]
     : [
         formSection(
           "Maklumat asas",
@@ -1299,7 +1249,7 @@ export function renderPublic(path, url, data = {}) {
       (entry) => "/instructor/" + encodeURIComponent(entry.slug) === path,
     );
     if (!item) return null;
-    content = profile(item);
+    content = profile(item, contentData.institutes);
   } else if (path === "/tentang-kami") content = about();
   else if (path === "/hubungi") content = contact();
   else if (path === join || path === "/daftar-instructor")

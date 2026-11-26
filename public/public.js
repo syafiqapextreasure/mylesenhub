@@ -3,22 +3,10 @@ const locationData = JSON.parse(
 );
 const locationForms = [...document.querySelectorAll("[data-location]")];
 
-for (const picker of document.querySelectorAll("[data-registration-institute]")) {
-  const name = picker.querySelector('[name="institute"]');
-  const directory = picker.querySelector("[data-registered-institute]");
-  directory.addEventListener("change", () => {
-    if (directory.value) name.value = directory.value;
-  });
-  name.addEventListener("input", () => {
-    directory.value = [...directory.options].some(option => option.value === name.value)
-      ? name.value
-      : "";
-  });
-}
-
 function syncLocations(form, changed = "") {
   const state = form.elements.state;
   const district = form.elements.district;
+  if (!state || !district) return;
   const institute = form.elements.institute;
   const instructor = form.querySelector("[data-instructor]");
   const fill = (select, values, keep = true) => {
@@ -196,6 +184,7 @@ function formValues(form) {
   return result;
 }
 function refreshClassSummary(picker) {
+  if (!picker) return;
   const selected = [...picker.querySelectorAll("input:checked")];
   const summary = picker.querySelector("[data-class-summary]");
   summary.replaceChildren(
@@ -408,7 +397,7 @@ for (const form of document.querySelectorAll("[data-api]")) {
     button.disabled = true;
     const values = formValues(form);
     try {
-      if (form.dataset.draft && !values.spim.length) {
+      if (form.dataset.draft === "instructor" && !values.spim.length) {
         const picker = form.querySelector(".pub-class-picker");
         picker.open = true;
         picker.querySelector("input").focus();

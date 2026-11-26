@@ -20,22 +20,33 @@ Jalankan `npm run db:migrate`, kemudian `npm run dev`. Migrasi menambah jadual d
 
 ## Aliran kandungan
 
+Untuk menyediakan akses pemilik yang sudah mendaftar dan sedang menunggu pengesahan e-mel, jalankan `npm run admin:grant -- EMAIL_PEMILIK --after-verification`. Selepas pengesahan melalui Neon Auth, log masuk untuk membuka dashboard Admin. Kelulusan ini terikat kepada ID akaun dan alamat e-mel, dan digunakan sekali sahaja.
+
 Instructor dan institut boleh menyimpan draf, menghantar maklumat serta melihat status semakan. Admin menyemak, mengesahkan dan menerbitkan versi awam. Permohonan perubahan disimpan berasingan daripada versi yang sedang dipaparkan. Gambar muat naik disimpan pada Neon dan hanya boleh dilihat oleh pemilik dan admin sehingga diterbitkan. Imej profil dan galeri terhad kepada JPG, PNG atau WebP sehingga 2 MB setiap satu.
 
 Apabila pemohon baharu memilih **Hantar untuk semakan**, MyLesenHub menyimpan borang dan lampiran pada pelayar semasa pendaftaran akaun. Permohonan dihantar secara automatik selepas sesi log masuk disahkan. Admin boleh memilih **Terbitkan** sebaik sahaja **Sahkan** berjaya.
 
 Laman `/cari-instructor?contoh=1` memaparkan contoh reka bentuk. Direktori biasa, sitemap dan carian awam menggunakan data yang diluluskan. E-mel dan nama penuh borang hanya tersedia mengikut peranan. Pertanyaan laman masuk ke peti mesej admin.
 
+### Institut, lokasi dan résumé
+
+Institut mendaftarkan nama rasmi, alamat dan pin lokasi. Pemohon boleh mencari alamat, mengesan lokasi dengan kebenaran pelayar, melaras pin pada peta, atau menampal koordinat daripada Google Maps. Peta pilihan menggunakan OpenStreetMap dan carian alamat menggunakan Photon. Pautan Google Maps penuh yang mengandungi koordinat boleh ditampal terus. Untuk pautan kongsi pendek, buka pautan itu di Google Maps dan salin koordinat pin.
+
+Selepas admin menerbitkan institut, namanya tersedia dalam pilihan **Institut Memandu** untuk pendaftaran dan kemas kini profil instructor. Profil awam memaparkan alamat institut, pautan Google Maps dan muat turun résumé PDF yang mengandungi butiran profil awam.
+
 ### Panduan video
 
-- [Daftar sebagai instructor](docs/panduan-pendaftaran/01-daftar-instructor.mp4)
-- [Daftar Institut Memandu](docs/panduan-pendaftaran/02-daftar-institut.mp4)
-- [Sahkan dan terbitkan permohonan sebagai admin](docs/panduan-pendaftaran/03-semakan-admin.mp4)
+- [Daftar institut, tetapkan pin dan terbitkan selepas semakan admin](docs/panduan-pendaftaran/01-institut-dan-kelulusan.mp4)
+- [Cari instructor, semak résumé dan peta, kemudian daftar dan terbitkan profil instructor](docs/panduan-pendaftaran/02-instructor-pdf-peta-penerbitan.mp4)
+- [Panduan mengikut langkah dan masa](docs/panduan-pendaftaran/index.html)
 
 ## Semakan
 
+Direktori prapelancaran mengandungi tujuh profil simulasi untuk semakan stakeholder. Tiga alamat institut merujuk [pengendali Berjaya](https://berjayabhd.my/hubungi-kami/) dan [senarai JPJ Melaka](https://www.jpj.gov.my/senarai-institut-memandu-melaka/). Untuk menyediakan data yang sama pada branch semakan berasingan, jalankan `node --env-file=.env.acceptance scripts/seed-prelaunch.js NAMA_BRANCH`. Skrip menambah rekod yang belum wujud. Setiap profil simulasi mempunyai label prapelancaran dan dikecualikan daripada sitemap. Sebelum pelancaran awam, admin boleh menarik balik profil simulasi daripada direktori.
+
 Ekstrak ZIP dan buka `index.html` untuk memilih halaman dan saiz skrin.
 
+- [Perbandingan prapelancaran bagi tujuh halaman direktori, pendaftaran dan semakan](docs/MyLesenHub-Perbandingan-Prapelancaran.zip)
 - [Semua halaman dan gambar perbandingan sebelah menyebelah](docs/MyLesenHub-Perbandingan-Semua.zip)
 - [Dashboard dengan lakaran dan tangkapan pelayar pada resolusi asal](docs/MyLesenHub-Perbandingan-Dashboard.zip)
 
