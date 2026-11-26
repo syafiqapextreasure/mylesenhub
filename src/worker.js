@@ -131,9 +131,8 @@ async function serve(req, env) {
         "/sitemap.xml\n",
     );
   if (path === "/sitemap.xml") {
-    const listing = env.DATABASE_URL
-      ? await catalog(neon(env.DATABASE_URL))
-      : { instructors: [] };
+    check(env.DATABASE_URL, 503, "Direktori belum tersedia. Cuba sebentar lagi.");
+    const listing = await catalog(neon(env.DATABASE_URL));
     const paths = [
       ...Object.keys(pages).filter(
         (p) =>
@@ -161,9 +160,10 @@ async function serve(req, env) {
   const example = url.searchParams.get("contoh") === "1";
   const resumeRoute = path.match(/^\/instructor\/([^/]+)\/resume\.pdf$/);
   if (resumeRoute) {
+    check(example || sql, 503, "Direktori belum tersedia. Cuba sebentar lagi.");
     const directory = example
       ? { instructors: demoInstructors, institutes: demoInstitutes }
-      : sql ? await catalog(sql) : { instructors: [], institutes: [] };
+      : await catalog(sql);
     const person = directory.instructors.find(
       (entry) => encodeURIComponent(entry.slug) === resumeRoute[1],
     );
@@ -222,7 +222,10 @@ async function serve(req, env) {
           instructors: demoInstructors,
           institutes: demoInstitutes,
         });
-      else if (sql) Object.assign(data, await catalog(sql));
+      else {
+        check(sql, 503, "Direktori belum tersedia. Cuba sebentar lagi.");
+        Object.assign(data, await catalog(sql));
+      }
     }
     const person = /^\/instructor\/[^/]+$/.test(path)
       ? data.instructors.find((i) => i.slug === path.split("/")[2])

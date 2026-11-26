@@ -59,6 +59,7 @@ for (const size of [
     await p.locator("[name=longitude]").inputValue(),
     "103.700000",
   );
+  await p.locator(".map-picker-manual summary").click();
   await p
     .locator("[data-map-paste]")
     .fill(
@@ -91,6 +92,7 @@ await page.waitForFunction(() =>
   document.querySelector("[data-map-status]").textContent.includes("manual"),
 );
 assert.equal(await page.locator("[name=latitude]").inputValue(), "");
+await page.locator(".map-picker-manual summary").click();
 await page.locator("[name=latitude]").fill("1.5");
 await page.locator("[name=longitude]").fill("103.7");
 assert.equal(await page.locator("[name=latitude]").inputValue(), "1.5");

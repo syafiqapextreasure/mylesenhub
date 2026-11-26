@@ -21,6 +21,8 @@ const client = (page, path, handler) =>
   );
 async function fields(page, names) {
   for (const [name, value] of Object.entries(names)) {
+    if (name === "latitude" && await page.locator(".map-picker-manual:not([open])").count())
+      await page.locator(".map-picker-manual summary").click();
     const control = page.locator('[name="' + name + '"]');
     if (await control.evaluate((input) => input.localName === "select"))
       await control.selectOption(value);

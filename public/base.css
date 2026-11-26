@@ -72,12 +72,88 @@ textarea:focus-visible {
     scroll-behavior: auto !important;
   }
 }
-.map-picker { grid-column: 1 / -1; display: grid; gap: 12px; min-width: 0; }
-.map-picker p { margin: 0; }
-.map-picker label { display: grid; gap: 6px; min-width: 0; }
-.map-picker input { width: 100%; min-width: 0; padding: 10px; border: 1px solid #9ca3af; border-radius: 6px; font: inherit; }
-.map-picker button { padding: 9px 12px; border: 1px solid #31508d; border-radius: 6px; background: white; color: #17376e; font: inherit; cursor: pointer; }
-.map-picker-actions, .map-picker-coordinates { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.map-picker-coordinates label { flex: 1 1 180px; }
-.map-picker [data-map-canvas] { height: 260px; position: relative; overflow: hidden; background: #e5e7eb; cursor: crosshair; }
-.map-picker iframe { width: 100%; height: 250px; border: 0; }
+.map-picker {
+  grid-column: 1 / -1;
+  min-width: 0;
+  container-type: inline-size;
+  border: 1px solid #cbdfea;
+  border-radius: 1rem;
+  background: white;
+  color: #101a3b;
+  overflow: clip;
+}
+.map-picker .map-picker-heading {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(110deg, #e6f4fe, #f4faff);
+  border-bottom: 1px solid #d8e7f1;
+}
+.map-picker-heading > img {
+  flex: none;
+  width: 2.65rem;
+  height: 2.65rem;
+  padding: .6rem;
+  object-fit: contain;
+  border: 1px solid #d4e5f0;
+  border-radius: .8rem;
+  background: white;
+}
+.map-picker .map-picker-heading h4 { margin: 0 0 .12rem; font-size: 1.2rem; font-weight: 780; line-height: 1.2; }
+.map-picker .map-picker-heading p, .map-picker [data-map-status] { margin: 0; color: #435573; font-size: .94rem; line-height: 1.5; }
+.map-picker-body { padding: 1rem 1.1rem; display: grid; gap: .85rem; }
+.map-picker-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.map-picker button {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  min-height: max(44px, 2.4rem); padding: .45rem .85rem; border-radius: .55rem;
+  border: 1px solid #bccfdf; background: white; color: #142746;
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+.map-picker button:hover { background: #edf5fc; border-color: #738da8; }
+.map-picker button[data-find-address] { background: #c40027; color: white; border-color: #c40027; }
+.map-picker button[data-find-address]:hover { background: #a80020; }
+.map-picker-actions button img, .map-picker-actions button svg { width: 1rem; height: 1rem; object-fit: contain; }
+.map-picker-actions button img { filter: brightness(0) invert(1); }
+.map-picker-actions svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.map-picker-actions > a { margin-inline-start: auto; font-size: .92rem; font-weight: 700; color: #243f60; text-underline-offset: .2em; }
+.map-picker-frame { position: relative; overflow: hidden; border-radius: .75rem; border: 1px solid #cee0e8; background: #e9f1f2; }
+.map-picker [data-map-canvas] { height: clamp(13rem, 30cqw, 19rem); position: relative; overflow: hidden; cursor: crosshair; }
+.map-picker .map-marker {
+  position: absolute; width: 1.55rem; height: 2rem; transform: translate(-50%, -100%);
+  filter: drop-shadow(0 1px 2px #17294477); pointer-events: none;
+  background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 32'%3E%3Cpath fill='%23d0002c' stroke='white' stroke-width='1.6' d='M12 31C9 26 1 17 1 12a11 11 0 1 1 22 0c0 5-8 14-11 19Z'/%3E%3Ccircle cx='12' cy='12' r='3.8' fill='white'/%3E%3C/svg%3E");
+}
+.map-picker-zoom {
+  position: absolute; inset: .55rem .55rem auto auto; display: grid; overflow: hidden;
+  border-radius: .55rem; border: 1px solid #bac9d4; box-shadow: 0 2px 8px #20384a24;
+}
+.map-picker-zoom button { padding: 0; width: max(44px, 1.9rem); min-height: max(44px, 1.9rem); border: 0; border-radius: 0; font-size: 1.25rem; line-height: 1; }
+.map-picker-zoom button + button { border-top: 1px solid #d7e1e8; }
+.map-picker-zoom button:focus-visible { outline-offset: -3px; }
+.map-picker .map-picker-credit { position: absolute; bottom: 0; right: 0; padding: .12rem .45rem; border-radius: .35rem 0 0; font-size: .72rem; color: #20354d; background: #fffffff2; }
+.map-picker-credit a { color: inherit; }
+.map-picker [data-map-status]:not(:empty) { padding: .55rem .75rem; background: #edf6fe; border-radius: .45rem; }
+.map-picker [data-map-status]:empty, .map-picker [hidden] { display: none; }
+.map-picker summary {
+  display: flex; align-items: center; gap: .6rem; justify-content: space-between;
+  min-height: 44px; padding: .65rem .8rem; background: #f4f8fc;
+  border: 1px solid #d5e2ee; border-radius: .55rem; font-weight: 700; cursor: pointer;
+}
+.map-picker summary::-webkit-details-marker { display: none; }
+.map-picker summary::after { content: ""; flex: none; width: .48rem; height: .48rem; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); margin: -.15rem .2rem 0 0; }
+.map-picker details[open] > summary::after { transform: rotate(225deg); margin-top: .3rem; }
+.map-picker-manual-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .65rem; align-items: end; padding-top: .75rem; }
+.map-picker label { display: grid; gap: .25rem; min-width: 0; font-weight: 650; }
+.map-picker input { width: 100%; min-width: 0; min-height: max(44px, 2.4rem); padding: .4rem .7rem; border: 1px solid #bdcfe0; border-radius: .5rem; font: inherit; font-weight: 400; }
+.map-picker-coordinates { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+.map-picker iframe { margin-top: .6rem; width: 100%; height: 14rem; border: 0; border-radius: .65rem; }
+.map-picker .map-picker-privacy { color: #52647c; font-size: .83rem; line-height: 1.45; }
+@container (max-width: 30rem) {
+  .map-picker .map-picker-heading, .map-picker-body { padding: .85rem; }
+  .map-picker-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .map-picker .map-picker-actions > button { padding-inline: .35rem; align-self: stretch; font-size: .93rem; }
+  .map-picker-actions > a { grid-column: 1 / -1; margin-inline-start: 0; justify-self: start; padding-block: .2rem; }
+  .map-picker-manual-body { grid-template-columns: minmax(0, 1fr); }
+  .map-picker-manual-body > button { justify-self: start; }
+}

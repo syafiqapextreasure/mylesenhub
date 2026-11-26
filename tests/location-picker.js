@@ -6,6 +6,7 @@ const element = (extra = {}) => ({
   style: {},
   value: "",
   validity: { valid: true },
+  removeAttribute(key) { delete this[key]; },
   addEventListener(type, fn) {
     this[type] = fn;
   },
@@ -32,6 +33,8 @@ const canvas = element({
   },
 });
 const nodes = {
+  ".map-picker-manual": element(),
+  ".map-picker-google": element(),
   "[name=latitude]": lat,
   "[name=longitude]": lng,
   "[data-map-preview]": preview,
@@ -97,6 +100,9 @@ await new Promise((r) => setTimeout(r, 0));
 assert.equal(lat.value, "1.500000");
 assert.equal(lng.value, "103.700000");
 assert.match(address.value, /Jalan Ujian/);
+assert.equal(preview.src, undefined);
+nodes[".map-picker-google"].open = true;
+nodes[".map-picker-google"].toggle();
 assert.match(preview.src, /1.500000/);
 nodes["[data-map-paste]"].value =
   "https://www.google.com/maps/place/Test/@1.1,103.1,17z/data=!3d1.5201!4d103.7702";

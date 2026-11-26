@@ -6,6 +6,8 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
     status = picker.querySelector("[data-map-status]"),
     search = picker.querySelector("[data-map-search]"),
     canvas = picker.querySelector("[data-map-canvas]");
+  const manual = picker.querySelector(".map-picker-manual");
+  const google = picker.querySelector(".map-picker-google");
   let center = [1.4927, 103.7414],
     zoom = 14,
     revision = 0;
@@ -54,33 +56,30 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
     if (lat.value && lng.value && lat.validity.valid && lng.validity.valid) {
       const [x, y] = pixel(Number(lat.value), Number(lng.value));
       const pin = document.createElement("span");
-      pin.textContent = "📍";
-      Object.assign(pin.style, {
-        position: "absolute",
-        left: x - left - 12 + "px",
-        top: y - top - 27 + "px",
-        fontSize: "24px",
-        pointerEvents: "none",
-      });
+      pin.className = "map-marker";
+      pin.style.left = x - left + "px";
+      pin.style.top = y - top + "px";
       canvas.append(pin);
     }
   }
   function update(recenter = false) {
-    search.href =
-      "https://www.google.com/maps/search/?api=1&query=" +
-      encodeURIComponent(form.elements.address?.value || "");
     const valid =
       lat.value !== "" &&
       lng.value !== "" &&
       lat.validity.valid &&
       lng.validity.valid;
-    preview.hidden = !valid;
+    const query = valid ? lat.value + "," + lng.value : form.elements.address?.value || "Malaysia";
+    search.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+    google.hidden = !valid;
     if (valid) {
       if (recenter) center = [Number(lat.value), Number(lng.value)];
-      preview.src =
-        "https://maps.google.com/maps?q=" +
-        encodeURIComponent(lat.value + "," + lng.value) +
-        "&z=16&output=embed";
+      if (google.open) {
+        const url = "https://maps.google.com/maps?q=" + encodeURIComponent(query) + "&z=16&output=embed";
+        if (preview.src !== url) preview.src = url;
+      }
+    } else {
+      google.open = false;
+      preview.removeAttribute("src");
     }
     draw();
   }
@@ -90,6 +89,14 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
     center = [a, b];
     update();
   }
+  google.addEventListener("toggle", () => { if (google.open) update(); });
+  for (const field of [lat, lng]) {
+    field.addEventListener("invalid", () => {
+      manual.open = true;
+      status.textContent = "Pilih titik pada peta atau lengkapkan koordinat institut.";
+    });
+  }
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(draw).observe(canvas);
   canvas.addEventListener("click", (event) => {
     revision++;
     const box = canvas.getBoundingClientRect(),
@@ -150,7 +157,7 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
       status.textContent =
         "Lokasi anggaran ditemui. Klik peta untuk menetapkan pin tepat.";
     } catch {
-      status.textContent =
+      if (request === revision) status.textContent =
         "Alamat tidak ditemui. Gunakan lokasi semasa atau masukkan koordinat secara manual.";
     }
   };
@@ -228,6 +235,7 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
           }
       },
       () => {
+        if (request !== revision) return;
         status.textContent =
           "Lokasi tidak dapat dikesan. Benarkan akses lokasi atau masukkan koordinat secara manual.";
       },
