@@ -1,7 +1,4 @@
 import assert from "node:assert/strict";
-import vm from "node:vm";
-import { readFile } from "node:fs/promises";
-const handlers = {};
 const element = (extra = {}) => ({
   style: {},
   value: "",
@@ -88,13 +85,11 @@ const context = {
       ],
     }),
   }),
-  Math,
-  encodeURIComponent,
 };
-vm.runInNewContext(
-  await readFile("public/location-picker.js", "utf8"),
-  context,
-);
+for (const [key, value] of Object.entries(context)) {
+  Object.defineProperty(globalThis, key, { value, configurable: true });
+}
+await import("../public/location-picker.js");
 await nodes["[data-detect-location]"].onclick();
 await new Promise((r) => setTimeout(r, 0));
 assert.equal(lat.value, "1.500000");
@@ -104,6 +99,10 @@ assert.equal(preview.src, undefined);
 nodes[".map-picker-google"].open = true;
 nodes[".map-picker-google"].toggle();
 assert.match(preview.src, /1.500000/);
+nodes["[data-map-paste]"].value = "https://maps.app.goo.gl/Example123";
+nodes["[data-use-map-paste]"].onclick();
+assert.equal(search.href, nodes["[data-map-paste]"].value);
+assert.equal(lat.value, "1.500000");
 nodes["[data-map-paste]"].value =
   "https://www.google.com/maps/place/Test/@1.1,103.1,17z/data=!3d1.5201!4d103.7702";
 nodes["[data-use-map-paste]"].onclick();

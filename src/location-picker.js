@@ -1,4 +1,5 @@
 import { escapeHtml as e } from "./security.js";
+import { googlePlaceUrl } from "../public/maps-url.js";
 
 // Shared by the public registration and member profile forms.
 export function locationPicker(p = {}) {
@@ -25,10 +26,10 @@ export function locationPicker(p = {}) {
       <details class="map-picker-manual">
         <summary>Masukkan koordinat atau pautan Google Maps</summary>
         <div class="map-picker-manual-body">
-          <label>Koordinat atau pautan pin Google Maps
-            <input type="text" data-map-paste placeholder="1.492700, 103.741400">
+          <label>Koordinat atau pautan profil institut di Google Maps
+            <input type="text" name="maps" data-map-paste maxlength="4096" value="${e(googlePlaceUrl(p.maps))}" placeholder="Koordinat atau pautan daripada butang Kongsi">
           </label>
-          <button type="button" data-use-map-paste>Gunakan pin ini</button>
+          <button type="button" data-use-map-paste>Gunakan lokasi ini</button>
           <div class="map-picker-coordinates">
             <label>Latitud<input name="latitude" type="number" min="-90" max="90" step="any" required value="${e(p.latitude ?? "")}"></label>
             <label>Longitud<input name="longitude" type="number" min="-180" max="180" step="any" required value="${e(p.longitude ?? "")}"></label>

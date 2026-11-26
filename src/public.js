@@ -545,7 +545,7 @@ const profile = (item, institutes) => {
         : "Alamat institut belum tersedia.") + '</p>') +
     (institute.maps
       ? '<a class="pub-btn pub-outline" target="_blank" rel="noopener noreferrer" href="' +
-        esc(institute.maps) + '">Buka di Google Maps ' + icon("arrow") + '</a>'
+        esc(institute.maps) + '">' + institute.mapsLabel + ' ' + icon("arrow") + '</a>'
       : '') +
     '</div></section>';
   const help =

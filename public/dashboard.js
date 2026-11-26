@@ -131,6 +131,7 @@
         delete payload.status;
         if (
           f.hasAttribute("data-member-profile") &&
+          f.dataset.submitKind === "instructor" &&
           btn?.value === "semakan" &&
           !(payload.spim || payload.classes || []).length
         ) {

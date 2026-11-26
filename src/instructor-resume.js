@@ -363,7 +363,7 @@ export async function instructorResume(person, institutes, origin, env) {
         ? "Alamat sebenar tidak tersedia untuk profil contoh."
         : "Alamat institut belum tersedia."),
   );
-  if (school.maps) link("Buka di Google Maps", school.maps);
+  if (school.maps) link(school.mapsLabel, school.maps);
 
   if (!person.demo && person.phone) {
     section("Maklumat hubungan");

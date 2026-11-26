@@ -1,6 +1,7 @@
 import { check, clean, uuid } from "./security.js";
 import { promotionsEnabled, promotionFields } from "./features.js";
 import { teachingClasses } from "./licence-classes.js";
+import { googlePlaceUrl } from "../public/maps-url.js";
 const appRoles = ["instructor", "institut", "admin"];
 const privateMedia = /^\/api\/media\/[a-f0-9-]{36}$/i;
 function images(raw) {
@@ -28,7 +29,6 @@ function profilePayload(raw, kind) {
     "postcode",
     "representative",
     "position",
-    "maps",
     "bio",
     ...(promotionsEnabled
       ? promotionFields.filter((key) => key !== "promotionPoster")
@@ -51,7 +51,7 @@ function profilePayload(raw, kind) {
   p.photo = images([raw.photo || raw.logo])[0] || "";
   if (promotionsEnabled)
     p.promotionPoster = images([raw.promotionPoster])[0] || "";
-  if (p.maps && !/^https?:\/\//i.test(p.maps)) p.maps = "";
+  p.maps = googlePlaceUrl(clean(raw.maps, 4096));
   return p;
 }
 function publicProfile(row) {
@@ -244,7 +244,7 @@ async function resolveInstitute(sql, p) {
 function validateInstituteLocation(p) {
   const lat = Number(p.latitude), lng = Number(p.longitude);
   check(p.name && p.address && p.latitude !== "" && p.longitude !== "" && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180, 400, "Isi nama, alamat dan koordinat lokasi institut yang sah.");
-  p.maps = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  p.maps = googlePlaceUrl(p.maps) || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 export async function submit(sql, u, body, registrationId) {
   const { kind, status = "semakan" } = body;

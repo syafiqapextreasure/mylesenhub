@@ -69,9 +69,12 @@ async function publish(id) {
   await post("/api/review", { id, action: "verify" }, admin.cookie);
   await post("/api/review", { id, action: "publish" }, admin.cookie);
 }
-const reg = await post("/api/register/institut", { name: "Institut QA " + stamp, address: "Jalan QA, Johor", latitude: "1.5", longitude: "103.7" }, inst.cookie);
+const placeLink = "https://maps.app.goo.gl/AcceptanceTest123";
+const reg = await post("/api/register/institut", { name: "Institut QA " + stamp, address: "Jalan QA, Johor", latitude: "1.5", longitude: "103.7", maps: placeLink }, inst.cookie);
 await publish(reg.id);
 const instituteId = "institut-" + inst.id;
+const [publishedSchool] = await sql`SELECT payload->>'maps' AS maps FROM mylesenhub.listings WHERE id=${instituteId}`;
+assert.equal(publishedSchool.maps, placeLink);
 const form = {
   requestId: randomUUID(),
   name: "Cikgu QA " + stamp,

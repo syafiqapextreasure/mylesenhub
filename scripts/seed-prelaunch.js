@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 
 // Run explicitly on the selected prelaunch or acceptance branch. This seed is
-// independent of deployment and never updates a listing or creates an Auth login.
+// independent of deployment. --update-map-links only replaces the original seeded searches.
 if (!process.env.NEON_BRANCH || process.argv[2] !== process.env.NEON_BRANCH) {
   throw new Error(
     "Pass the exact configured NEON_BRANCH as the first argument.",
@@ -12,6 +12,7 @@ const melakaSource = "https://www.jpj.gov.my/senarai-institut-memandu-melaka/";
 const institutes = [
   {
     id: "berjaya-taman-perling",
+    placeId: "ChIJZyc7mx9z2jERMStJ75ystp4",
     name: "Pusat Latihan Memandu Berjaya Berhad",
     address:
       "Lot 3355, Jalan Persisiran Perling 1, Taman Perling, 81200 Johor Bahru, Johor",
@@ -22,6 +23,7 @@ const institutes = [
   },
   {
     id: "merlimau-serkam",
+    placeId: "ChIJQ7jYQADr0TEReq9YSeQ_De0",
     name: "1 Merlimau Safety Driving Centre Sdn. Bhd.",
     address:
       "Lot 3, 9 & 10, Halal Hub Serkam, Kawasan Perindustrian Serkam, 77300 Merlimau, Melaka",
@@ -32,6 +34,7 @@ const institutes = [
   },
   {
     id: "malacca-safety-bukit-katil",
+    placeId: "ChIJWf4sEQjv0TERDPd0zrsryhE",
     name: "Malacca Safety Driving Centre Sdn. Bhd.",
     address: "9378, Jalan Bukit Katil, 75450 Melaka",
     state: "Melaka",
@@ -112,17 +115,30 @@ const instructors = [
     "Pelajar berlatih memilih lorong, menjaga jarak dan meletakkan kereta di petak yang sempit.",
   ],
 ];
-const listings = institutes.map(({ id, ...school }) => ({
+const listings = institutes.map(({ id, placeId, ...school }) => ({
   id,
   kind: "institut",
   payload: {
     ...school,
     maps:
       "https://www.google.com/maps/search/?api=1&query=" +
-      encodeURIComponent(school.name + ", " + school.address),
+      encodeURIComponent(school.name) + "&query_place_id=" + placeId,
     bio: "Alamat institusi untuk rujukan direktori prapelancaran.",
   },
 }));
+if (process.argv.includes("--update-map-links")) {
+  const updates = listings.map(({ id, payload }) => {
+    const original = "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(payload.name + ", " + payload.address);
+    return sql`UPDATE mylesenhub.listings
+      SET payload=jsonb_set(payload, '{maps}', to_jsonb(${payload.maps}::text)), updated_at=now()
+      WHERE id=${id} AND kind='institut' AND user_id=${"prelaunch-directory-" + id}
+        AND payload->>'maps'=${original} RETURNING id`;
+  });
+  const updated = await sql.transaction(updates);
+  console.log("Updated institute map links:", updated.flat().map(row => row.id));
+  process.exit(0);
+}
 for (const [
   name,
   schoolIndex,

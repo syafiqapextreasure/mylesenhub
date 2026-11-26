@@ -86,7 +86,7 @@ function document(body, options) {
     (dash ? '<link rel="stylesheet" href="/dashboard-shell.css"><link rel="stylesheet" href="/dashboard-admin.css">' : publicPageStyles(path)) +
     '<script src="/' +
     css +
-    '.js" defer></script><script src="/location-picker.js" defer></script>' +
+    '.js" defer></script><script type="module" src="/location-picker.js"></script>' +
     (jsonld
       ? '<script type="application/ld+json">' +
         JSON.stringify(jsonld).replace(/</g, "\\u003c") +

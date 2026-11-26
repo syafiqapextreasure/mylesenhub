@@ -1,3 +1,5 @@
+import { googlePlaceUrl } from "./maps-url.js";
+
 for (const picker of document.querySelectorAll("[data-map-picker]")) {
   const form = picker.closest("form"),
     lat = picker.querySelector("[name=latitude]"),
@@ -8,6 +10,7 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
     canvas = picker.querySelector("[data-map-canvas]");
   const manual = picker.querySelector(".map-picker-manual");
   const google = picker.querySelector(".map-picker-google");
+  const pasted = picker.querySelector("[data-map-paste]");
   let center = [1.4927, 103.7414],
     zoom = 14,
     revision = 0;
@@ -69,7 +72,8 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
       lat.validity.valid &&
       lng.validity.valid;
     const query = valid ? lat.value + "," + lng.value : form.elements.address?.value || "Malaysia";
-    search.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+    search.href = googlePlaceUrl(pasted.value) ||
+      "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
     google.hidden = !valid;
     if (valid) {
       if (recenter) center = [Number(lat.value), Number(lng.value)];
@@ -90,6 +94,7 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
     update();
   }
   google.addEventListener("toggle", () => { if (google.open) update(); });
+  pasted.addEventListener("change", () => update());
   for (const field of [lat, lng]) {
     field.addEventListener("invalid", () => {
       manual.open = true;
@@ -126,7 +131,7 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
   });
   form.elements.address?.addEventListener("input", () => {
     revision++;
-    search.href =
+    search.href = googlePlaceUrl(pasted.value) ||
       "https://www.google.com/maps/search/?api=1&query=" +
       encodeURIComponent(form.elements.address.value);
   });
@@ -162,7 +167,8 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
     }
   };
   picker.querySelector("[data-use-map-paste]").onclick = () => {
-    const raw = picker.querySelector("[data-map-paste]").value.trim();
+    const raw = pasted.value.trim();
+    const place = googlePlaceUrl(raw);
     let decoded = raw;
     try {
       decoded = decodeURIComponent(raw.replace(/\+/g, " "));
@@ -178,8 +184,14 @@ for (const picker of document.querySelectorAll("[data-map-picker]")) {
       Math.abs(Number(match[1])) > 90 ||
       Math.abs(Number(match[2])) > 180
     ) {
-      status.textContent =
-        "Koordinat tidak ditemui. Gunakan latitud, longitud atau pautan Google Maps lengkap yang mengandungi koordinat.";
+      if (place) {
+        update();
+        status.textContent = lat.value && lng.value
+          ? "Pautan profil institut dipilih. Semak pin pada peta."
+          : "Pautan profil institut dipilih. Pilih titik pada peta untuk menetapkan pin.";
+      } else {
+        status.textContent = "Masukkan koordinat atau salin pautan Kongsi daripada profil institut di Google Maps.";
+      }
       return;
     }
     revision++;

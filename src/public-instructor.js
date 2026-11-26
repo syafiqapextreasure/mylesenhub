@@ -1,32 +1,10 @@
+import { googleMapsUrl, googlePlaceUrl } from "../public/maps-url.js";
+
 const normalize = (value) =>
   String(value ?? "")
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
-
-function googleMapsUrl(value) {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password || url.port)
-      return "";
-    const host = url.hostname;
-    const mapsPath = /^\/maps(?:\/|$)/.test(url.pathname);
-    if (
-      ((host === "www.google.com" ||
-        host === "google.com" ||
-        host === "www.google.com.my" ||
-        host === "google.com.my") &&
-        mapsPath) ||
-      (host === "maps.google.com" && (mapsPath || url.pathname === "/")) ||
-      (host === "maps.app.goo.gl" && /^\/[a-z0-9]+\/?$/i.test(url.pathname)) ||
-      (host === "goo.gl" && /^\/maps\/[a-z0-9]+\/?$/i.test(url.pathname))
-    )
-      return url.href;
-  } catch {
-    // Older profiles may have an empty or malformed link.
-  }
-  return "";
-}
 
 export function instituteLocation(person, institutes) {
   let institute;
@@ -55,14 +33,15 @@ export function instituteLocation(person, institutes) {
     : addressText
       ? [name, addressText, "Malaysia"].filter(Boolean).join(", ")
       : "";
-  const maps = person.demo
-    ? ""
-    : googleMapsUrl(institute?.maps) ||
-      (search
-        ? "https://www.google.com/maps/search/?api=1&query=" +
-          encodeURIComponent(search)
-        : "");
-  return { name, address: addressText, maps };
+  const place = googlePlaceUrl(institute?.maps);
+  const queryUrl = search
+    ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(search)
+    : "";
+  const fallback = hasPin ? queryUrl : googleMapsUrl(institute?.maps) || queryUrl;
+  const maps = person.demo ? "" : place || fallback;
+  const mapsLabel = place ? "Buka di Google Maps" :
+    hasPin ? "Lihat pin di Google Maps" : "Cari alamat di Google Maps";
+  return { name, address: addressText, maps, mapsLabel };
 }
 
 export function instructorGallery(person) {
